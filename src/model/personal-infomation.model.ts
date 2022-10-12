@@ -4,5 +4,6 @@ export default interface IPersonalInfomation {
     phoneNumber: string;
     email: string;
     website: string;
+    facebook: string;
     address: string;
 }

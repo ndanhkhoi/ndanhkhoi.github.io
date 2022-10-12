@@ -1,5 +1,5 @@
 import React from 'react';
-import {faEnvelopeSquare, faGlobe, faMapMarker, faPhoneSquare} from '@fortawesome/free-solid-svg-icons';
+import {faEnvelopeSquare, faGlobe, faMapMarker, faMessage, faPhoneSquare} from '@fortawesome/free-solid-svg-icons';
 import IPersonalInfomation from '../model/personal-infomation.model';
 import {ListItem} from '../component';
 
@@ -26,7 +26,12 @@ const ResumeHeader: React.FC<IResumeHeaderProps> = props => {
                             <a className="resume-link" href="mailto:#">{props.personalInfomation?.email}</a>
                         </ListItem>
                         <ListItem icon={faGlobe}>
-                            <a className="resume-link" href={props.personalInfomation?.website}>{props.personalInfomation?.website}</a>
+                            <a className="resume-link"
+                               href={props.personalInfomation?.website}>{props.personalInfomation?.website}</a>
+                        </ListItem>
+                        <ListItem icon={faMessage}>
+                            <a className="resume-link"
+                               href={props.personalInfomation?.facebook}>{props.personalInfomation?.facebook}</a>
                         </ListItem>
                         <ListItem icon={faMapMarker}>
                             {props.personalInfomation?.address}

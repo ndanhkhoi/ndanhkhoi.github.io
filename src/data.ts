@@ -5,8 +5,9 @@ export const RESUME_DATA: Readonly<IResumeData> = {
         email: 'ngducanhkhoiii@gmail.com',
         fullName: 'Nguyen Duc Anh Khoi',
         jobTitle: 'Developer',
-        phoneNumber: "+84 xxx xxx xxx",
+        phoneNumber: "+84 776 524 327",
         website: 'https://ndanhkhoi.github.io',
+        facebook: 'https://facebook.com/ndanhkhoi',
         address: 'Can Tho, Viet Nam'
     },
     sumary: `I want to become a highly skilled developer and find a job in a professional environment to take advantage of the experience that I have accumulated over the years creating quality websites or applications`,
@@ -91,11 +92,12 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     skill: {
         technical: [
             'Java/ Spring/ Hibernate/ Jhipster',
-            'HTML/CSS/Bootstrap',
-            'JavaScript/ ReactJS',
+            'HTML/CSS/Bootstrap/TailwindCSS',
+            'JavaScript/ Typescript/ ReactJS',
             'C#/ ASP.NET (basic)',
             'MySQL/ MSSQL/ Oracle/ PostgreSQL/ MongoDB',
             'Kafka/ RabbitMQ',
+            'CI/CD with GitHub Action, Gitlab CI, Heroku, Northflank',
             'Reactor programing',
             'Object-oriented design',
             'Microservice architecture',
@@ -120,7 +122,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             time: '2016, 2017, 2018, 2019'
         },
         {
-            name: 'Listed on the honors table of Collection and School for best students',
+            name: 'Listed on the honors table of Colleges and School for best students',
             organization: 'Can Tho University',
             time: '2016, 2017, 2018'
         },
@@ -135,7 +137,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             time: '2019'
         },
         {
-            name: 'VNPT Star Award',
+            name: 'VNPT Star Award for good employees with many contributions to the company',
             organization: 'VNPT IT',
             time: '2020'
         },
