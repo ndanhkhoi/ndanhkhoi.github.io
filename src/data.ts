@@ -2,7 +2,7 @@ import IResumeData from './model/resume-data.model';
 
 export const RESUME_DATA: Readonly<IResumeData> = {
     personalInfomation: {
-        email: 'ngducanhkhoiii@gmail.com',
+        email: 'khoinda.611@gmail.com',
         fullName: 'Nguyen Duc Anh Khoi',
         jobTitle: 'Developer',
         phoneNumber: "+84 776 524 327",
