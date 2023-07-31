@@ -46,6 +46,12 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     ],
     projects: [
         {
+            time: 2022,
+            name: 'Zero Stickers',
+            technology: 'Java, Spring Boot, ReactJS, MongoDB',
+            description: 'Web application can help you to make sticker packs form Telegram. Visit it at https://zero-sticker.onrender.com/',
+        },
+        {
             time: 2021,
             name: 'Simple Telegram Command Bot Spring Boot Starter',
             technology: 'Java, Spring Boot, Reactor',
