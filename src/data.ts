@@ -6,17 +6,20 @@ export const RESUME_DATA: Readonly<IResumeData> = {
         fullName: 'Nguyen Duc Anh Khoi',
         jobTitle: 'Developer',
         phoneNumber: "+84 776 524 327",
-        website: 'https://ndanhkhoi.github.io',
+        website: 'https://ndanhkhoi-blog.pages.dev',
         facebook: 'https://facebook.com/ndanhkhoi',
         address: 'Can Tho, Viet Nam'
     },
-    sumary: `I want to become a highly skilled developer and find a job in a professional environment to take advantage of the experience that I have accumulated over the years creating quality websites or applications`,
+    sumary: `You are looking for a skilled programmer in website development? I could be one you're seeking! I graduated with Information Technology excellent certifite from Can Tho University in 2019 and GPA was 3.8/4.0. This school is ranked third in Vietnam by Webometrics ranking 2019. With 4 years experience in developing website with Java Spring and React JS, I can develop quality websites with friendly UI and good perfomance.`,
     workExperiences: [
         {
             time: 'Mar 2020 - now',
             company: 'VNPT IT',
             jobPosition: 'Developer/ Software engineer',
             description: [
+                `Integrating cashless payment via QR Code of VietinBank, Agribank, VNPT Money for Hospitals Infomation System (HIS)`,
+                `Integrating VNPT Invoice electronic invoices for Hospitals Infomation System (HIS)`,
+                `Build the function of connecting medical examination data with the health insurance assessment portal`,
                 `Maintain, and develop new feature for 'Fee & Health Insurance' module of VNPT HIS`,
                 `Analysis, design and develop a 'Fee & Health Insurance' microservice for VNPT Home & Clinic - The clinic manager and family doctor system`,
                 `Design and develop front-end for VNPT Home & Clinic`,
@@ -46,11 +49,36 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     ],
     projects: [
         {
+            time: 2023,
+            name: `Ndanhkhoi's blog`,
+            technology: 'ReactJS, Docusaurus',
+            description: 'Personal blog to post my articles',
+            type: 'Personal Projects',
+            link: 'https://ndanhkhoi.name.vn/'
+        },
+        {
+            time: 2023,
+            name: 'Moni',
+            technology: 'Java, Spring Boot, ReactJS, TailwindCSS, PostgreSQL',
+            description: 'Personal enpense manager system - Track expenses and achieve your personal financial goals',
+            type: 'Personal Projects',
+            link: 'https://moni.ndanhkhoi.name.vn/'
+        },
+        {
+            time: 2023,
+            name: 'Google Bard Client Library For Java',
+            technology: 'Java',
+            description: 'Simple client to get Google Bard\'s answer from your prompt',
+            type: 'Open source',
+            github: 'https://github.com/ndanhkhoi/GoogleBardClient'
+        },
+        {
             time: 2022,
             name: 'Zero Stickers',
             technology: 'Java, Spring Boot, ReactJS, MongoDB',
-            description: 'Web application can help you to make sticker packs form Telegram. Visit it at https://zero-sticker.onrender.com/',
+            description: 'Web application can help you to make sticker packs form Telegram.',
             type: 'Personal Projects',
+            link: 'https://zero-sticker.onrender.com/'
         },
         {
             time: 2021,
@@ -98,12 +126,14 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     ],
     skill: {
         technical: [
-            'Java/ Spring/ Hibernate/ Jhipster',
+            'Java/ Spring/ Hibernate/ Jhipster/ JMIX',
             'HTML/CSS/Bootstrap/TailwindCSS',
             'JavaScript/ Typescript/ ReactJS',
-            'C#/ ASP.NET (basic)',
+            'Flutter/ C#/ ASP.NET (basic)',
             'MySQL/ MSSQL/ Oracle/ PostgreSQL/ MongoDB',
             'Kafka/ RabbitMQ',
+            'Docker/ Docker compose/ Portainer',
+            'Cloudflare/ Heroku/ Render/ Vercel/ Northflank',
             'CI/CD with GitHub Action, Gitlab CI, Heroku, Northflank',
             'Reactor programing',
             'Object-oriented design',

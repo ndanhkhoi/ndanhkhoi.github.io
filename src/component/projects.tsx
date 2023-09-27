@@ -1,6 +1,8 @@
 import React from 'react';
 import IProject from '../model/project.model';
 import github from '../assets/images/github.svg';
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faGlobe} from "@fortawesome/free-solid-svg-icons";
 
 const Projects: React.FC<{projects: Array<IProject>}> = ({projects}) => {
 
@@ -32,7 +34,16 @@ const Projects: React.FC<{projects: Array<IProject>}> = ({projects}) => {
                                        <span className={'me-2'}>
                                             <img src={github} alt={'github'} width={15}/>
                                        </span>
-                                        Github: <a href={project.github}>{project.github}</a>
+                                        Github: <a href={project.github} target={'_blank'}>{project.github}</a>
+                                    </p>
+                                }
+                                {
+                                    project.link &&
+                                    <p>
+                                       <span className={'me-2'}>
+                                            <FontAwesomeIcon icon={faGlobe} fixedWidth  />
+                                       </span>
+                                        Link: <a href={project.link} target={'_blank'}>{project.link}</a>
                                     </p>
                                 }
                             </div>

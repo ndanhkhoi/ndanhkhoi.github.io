@@ -4,5 +4,6 @@ export default interface IProject {
     description: string,
     technology: string,
     type: string,
-    github?: string
+    github?: string,
+    link?: string,
 }
