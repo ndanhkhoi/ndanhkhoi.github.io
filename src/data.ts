@@ -80,6 +80,14 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             github: 'https://github.com/ndanhkhoi/GoogleBardClient'
         },
         {
+            time: 2020 - 2022,
+            name: 'VNPT Home & Clinic',
+            technology: 'Oracle Database · Jasper Reports · Apache Kafka · RabbitMQ · Microservices · JHipster · Bootstrap (Framework) · Java · Spring Boot · React.js',
+            description: 'VNPT Home & Clinic is comprehensive support software for general clinics and private specialized clinics in managing reception, treatment, pharmacy, hospitals and revenue safely, helping to save time. time and manpower. \n' +
+                'Silver award in the product and service category dedicated to healthcare at IT World Awards 2022',
+            type: 'Company Projects - Associated with VNPT IT',
+        },
+        {
             time: 2022,
             name: 'Zero Stickers',
             technology: 'Java, Spring Boot, ReactJS, MongoDB',
