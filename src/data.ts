@@ -190,5 +190,5 @@ export const RESUME_DATA: Readonly<IResumeData> = {
         {name: 'English', level: 'basic'}
     ],
     interests: ['Reading', 'Football', 'Music'],
-    github: 'https://github.com/ndanhkhoi'
+    github: 'https://github.com/ndanhkhoi/ndanhkhoi.github.io'
 }
