@@ -10,9 +10,9 @@ const Resume: React.FC<IResumeProps> = ({data}) => {
 
     return (
         <div className="main-wrapper bg-white">
-            <div className="container px-3 px-lg-5">
+            <div className="container px-2 px-lg-5">
                 <div className={'shadow-lg p-0'}>
-                    <article id={'resume'} className="resume-wrapper mx-auto bg-white p-5 mb-5 my-5 ">
+                    <article id={'resume'} className="resume-wrapper mx-auto bg-white p-5 mb-5 my-2 my-lg-5 ">
                         <ResumeHeader personalInfomation={data.personalInfomation} />
                         <hr/>
                         <ResumeIntro sumary={data.sumary}/>
