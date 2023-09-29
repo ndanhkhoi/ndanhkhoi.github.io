@@ -15,13 +15,16 @@ const Projects: React.FC<{projects: Array<IProject>}> = ({projects}) => {
                         <div key={idx} className="item mb-3">
                             <div className="row item-heading align-items-center mb-2">
                                 <h4 className="item-title col-12 col-md-6 col-lg-8 mb-2 mb-md-0">
-                                    {project.time} | {project.name}
+                                    {project.name}
                                 </h4>
                                 <div className="item-meta col-12 col-md-6 col-lg-4 text-muted text-start text-md-end">
                                     {project.type}
                                 </div>
                             </div>
                             <div className="item-content">
+                                <p>
+                                    {project.time}
+                                </p>
                                 <p>
                                     {project.description}
                                 </p>

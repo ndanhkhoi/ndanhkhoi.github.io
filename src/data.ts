@@ -13,7 +13,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     sumary: `You are looking for a skilled programmer in website development? I could be one you're seeking! I graduated with Information Technology excellent certifite from Can Tho University in 2019 and GPA was 3.8/4.0. This school is ranked third in Vietnam by Webometrics ranking 2019. With 4 years experience in developing website with Java Spring and React JS, I can develop quality websites with friendly UI and good perfomance.`,
     workExperiences: [
         {
-            time: 'Mar 2020 - now',
+            time: 'Mar 2020 - Present',
             company: 'VNPT IT',
             jobPosition: 'Developer/ Software engineer',
             description: [
@@ -49,7 +49,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
     ],
     projects: [
         {
-            time: 2023,
+            time: 'August 2023 - Present',
             name: `Ndanhkhoi's blog`,
             technology: 'ReactJS, Docusaurus',
             description: 'Personal blog to post my articles',
@@ -57,7 +57,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             link: 'https://ndanhkhoi.name.vn/'
         },
         {
-            time: 2023,
+            time: 'January 2023 - Present',
             name: 'Moni',
             technology: 'Java, Spring Boot, ReactJS, TailwindCSS, PostgreSQL',
             description: 'Personal enpense manager system - Track expenses and achieve your personal financial goals',
@@ -65,14 +65,14 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             link: 'https://moni.ndanhkhoi.name.vn/'
         },
         {
-            time: 2023,
+            time: 'February 2023 - May 2023',
             name: 'Inventory',
             technology: 'Java, Spring Boot, JMIX, TailwindCSS, PostgreSQL',
             description: 'Inventory management system for stores with import, invoicing, export, and revenue reporting features',
             type: 'Projects for customer',
         },
         {
-            time: 2023,
+            time: 'August 2023 - Present',
             name: 'Google Bard Client Library For Java',
             technology: 'Java',
             description: 'Simple client to get Google Bard\'s answer from your prompt',
@@ -80,15 +80,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             github: 'https://github.com/ndanhkhoi/GoogleBardClient'
         },
         {
-            time: 2020 - 2022,
-            name: 'VNPT Home & Clinic',
-            technology: 'Oracle Database · Jasper Reports · Apache Kafka · RabbitMQ · Microservices · JHipster · Bootstrap (Framework) · Java · Spring Boot · React.js',
-            description: 'VNPT Home & Clinic is comprehensive support software for general clinics and private specialized clinics in managing reception, treatment, pharmacy, hospitals and revenue safely, helping to save time. time and manpower. \n' +
-                'Silver award in the product and service category dedicated to healthcare at IT World Awards 2022',
-            type: 'Company Projects - Associated with VNPT IT',
-        },
-        {
-            time: 2022,
+            time: 'December 2022',
             name: 'Zero Stickers',
             technology: 'Java, Spring Boot, ReactJS, MongoDB',
             description: 'Web application can help you to make sticker packs form Telegram.',
@@ -96,12 +88,20 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             link: 'https://zero-sticker.onrender.com/'
         },
         {
-            time: 2021,
+            time: 'April 2021 - Present',
             name: 'Simple Telegram Command Bot Spring Boot Starter',
             technology: 'Java, Spring Boot, Reactor',
             description: 'A simple-to-use library to create Telegram Long Polling Bots in Java and Spring Boot with syntax like Spring MVC',
             type: 'Open source',
             github: 'https://github.com/ndanhkhoi/simple-telegram-command-bot-spring-boot-starter'
+        },
+        {
+            time: 'April 2020 - July 2022 ',
+            name: 'VNPT Home & Clinic',
+            technology: 'Oracle Database · Jasper Reports · Apache Kafka · RabbitMQ · Microservices · JHipster · Bootstrap (Framework) · Java · Spring Boot · React.js',
+            description: 'VNPT Home & Clinic is comprehensive support software for general clinics and private specialized clinics in managing reception, treatment, pharmacy, hospitals and revenue safely, helping to save time. time and manpower. \n' +
+                'Silver award in the product and service category dedicated to healthcare at IT World Awards 2022',
+            type: 'Company Projects - Associated with VNPT IT',
         },
         {
             time: 2019,
