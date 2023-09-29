@@ -66,6 +66,13 @@ export const RESUME_DATA: Readonly<IResumeData> = {
         },
         {
             time: 2023,
+            name: 'Inventory',
+            technology: 'Java, Spring Boot, JMIX, TailwindCSS, PostgreSQL',
+            description: 'Inventory management system for stores with import, invoicing, export, and revenue reporting features',
+            type: 'Personal Projects',
+        },
+        {
+            time: 2023,
             name: 'Google Bard Client Library For Java',
             technology: 'Java',
             description: 'Simple client to get Google Bard\'s answer from your prompt',
