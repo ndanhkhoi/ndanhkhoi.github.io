@@ -129,12 +129,11 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             'Java/ Spring/ Hibernate/ Jhipster/ JMIX',
             'HTML/CSS/Bootstrap/TailwindCSS',
             'JavaScript/ Typescript/ ReactJS',
-            'Flutter/ C#/ ASP.NET (basic)',
+            'Flutter/ C#/ ASP.NET, .NET core (basic)',
             'MySQL/ MSSQL/ Oracle/ PostgreSQL/ MongoDB',
             'Kafka/ RabbitMQ',
             'Docker/ Docker compose/ Portainer',
-            'Cloudflare/ Heroku/ Render/ Vercel/ Northflank',
-            'CI/CD with GitHub Action, Gitlab CI, Heroku, Northflank',
+            'CI/CD with GitHub Action, Gitlab CI, Heroku, Render, Vercel, Northflank',
             'Reactor programing',
             'Object-oriented design',
             'Microservice architecture',
@@ -184,5 +183,5 @@ export const RESUME_DATA: Readonly<IResumeData> = {
         {name: 'English', level: 'basic'}
     ],
     interests: ['Reading', 'Football', 'Music'],
-    github: 'https://github.com/ndanhkhoi/ndanhkhoi.github.io'
+    github: 'https://github.com/ndanhkhoi'
 }
