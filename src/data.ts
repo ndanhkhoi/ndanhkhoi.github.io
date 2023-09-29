@@ -69,7 +69,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             name: 'Inventory',
             technology: 'Java, Spring Boot, JMIX, TailwindCSS, PostgreSQL',
             description: 'Inventory management system for stores with import, invoicing, export, and revenue reporting features',
-            type: 'Personal Projects',
+            type: 'Projects for customer',
         },
         {
             time: 2023,
