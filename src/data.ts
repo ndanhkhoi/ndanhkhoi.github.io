@@ -17,6 +17,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             company: 'VNPT IT',
             jobPosition: 'Developer/ Software engineer',
             description: [
+                `Team Lead of 'Fee & Health Insurance' module of VNPT HIS Hospitals Infomation System (HIS)`,
                 `Integrating cashless payment via QR Code of VietinBank, Agribank, VNPT Money for Hospitals Infomation System (HIS)`,
                 `Integrating VNPT Invoice electronic invoices for Hospitals Infomation System (HIS)`,
                 `Build the function of connecting medical examination data with the health insurance assessment portal`,
