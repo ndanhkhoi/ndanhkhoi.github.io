@@ -26,7 +26,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
                 `Design and develop front-end for VNPT Home & Clinic`,
                 `Develop front-end and back-end for Covid disease management system for Tien Giang Province`
             ],
-            technology: ['Java, Spring boot, Hibernate, Jhipster, Liquibase', 'Jasper report', 'React JS', 'PostgreSQL, Oracle, MongoDB']
+            technology: ['Java, Spring boot, Hibernate, Jhipster, Liquibase', 'Jasper report', 'React JS', 'Kafka/ RabbitMQ', 'PostgreSQL, Oracle, MongoDB']
         },
         {
             time: 'Sep 2019 - Feb 2020',
