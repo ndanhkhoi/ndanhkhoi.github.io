@@ -153,8 +153,9 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             'Reactor programing',
             'Object-oriented design',
             'Microservice architecture',
+            'Jira / Work with scrum agile',
             'Implement data structures and algorithm',
-            'Design and implement database structures'
+            'Design and implement database structures',
         ],
         professional: ['Effective communication', 'Team player', 'Presentation', 'Strong problem solver']
     },
