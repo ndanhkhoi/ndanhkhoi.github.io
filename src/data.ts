@@ -86,7 +86,7 @@ export const RESUME_DATA: Readonly<IResumeData> = {
             technology: 'Java, Spring Boot, ReactJS, MongoDB',
             description: 'Web application can help you to make sticker packs form Telegram.',
             type: 'Personal Projects',
-            link: 'https://zero-sticker.onrender.com/'
+            link: 'https://zero-stickers.pages.dev/'
         },
         {
             time: 'April 2021 - Present',
