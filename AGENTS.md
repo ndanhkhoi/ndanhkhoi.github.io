@@ -14,6 +14,7 @@ Personal CV as **print-first A4 HTML**, statically built with **Eleventy** (SSG)
 - `src/index.njk` - CV template + Paged.js boot script (A4 preview + right-aligned page numbers + PDF dropdown button Download/Print + mobile fit-width)
 - `src/css/resume.css` - all document styles (follows the A4 spec below)
 - `scripts/build-pdf.mjs` - generates `_site/cv.pdf` with headless Chromium (puppeteer); the Download PDF button downloads this file
+- `scripts/check_view.py` - Playwright layout check (mobile fit-width = PDF-viewer look, desktop, landscape, print emulation); screenshots in `test-artifacts/` (gitignored)
 - `docs/A4_PRINT_VIEW_SPEC.md` - the project's **single spec** (source of truth):
   Part A = A4 layout design (tokens `--sp-*/--fs-*/--lh-*`, pagination
   `.section--atomic`/`.section-opening`/`.break-page`, `margin-bottom` only, no
@@ -47,3 +48,4 @@ Personal CV as **print-first A4 HTML**, statically built with **Eleventy** (SSG)
 - Build: `npm run build` → `_site/`
 - Deploy: commit + push to `main`, Actions builds to `gh-pages` automatically.
 - Print PDF: open the site → Ctrl/Cmd+P → A4, 100% scale, browser header/footer off.
+- Visual check: `npm run build` + serve `_site` (e.g. `python3 -m http.server 4173 --directory _site`) → `npm run check:view` (needs `pip install playwright`; exit 0 = all green).

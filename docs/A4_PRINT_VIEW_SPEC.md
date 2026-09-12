@@ -176,7 +176,8 @@ numbers + PDF build.
 | 3 | Stamp **right-aligned** page numbers | `.preview-page-number` on each sheet, label `1 / n`, right margin = `PAGE_PADDING_MM` - change the label in the `pageLabel` function |
 | 4 | Compensate padding at split points | `[data-split-from]` / `[data-split-to]` get `12mm !important` back (must match `.page` padding - change both or neither) |
 | 5 | **PDF** button (dropdown: Download PDF / Print PDF) | Fixed bottom-right, stroke SVG icons, chevron rotates when open, closes on outside click/Esc, hidden when printing. Download = link to `/cv.pdf` (direct download, **auto-hides when the file isn't built yet** - avoids confusion with print behavior); Print = `window.print()`. Must be appended **after** pagination finishes - an element outside body before that gets pulled into the content by paged.js |
-| 6 | Mobile fit-width | Shrinks the A4 sheet to screen width via CSS `zoom` (like a real PDF viewer), re-runs on resize, resets to `zoom: 1` when printing |
+| 6 | Mobile fit-width | Shrinks the A4 sheet to screen width via CSS `zoom` (like a real PDF viewer). Width source = `documentElement.clientWidth` (NOT `window.innerWidth`, which tracks overflowing content on mobile - trap B4.5). Re-runs on resize/orientationchange, resets to `zoom: 1` when printing |
+| 6b | Loading state | From first paint: gray backdrop + the raw `.page` hidden **inline** (never zoom or unhide while pagination runs - traps B4.5/B4.6). Once pagination is stable: zoom the sheets, unhide, stamp numbers - one step |
 | 7 | Broken-vendor fallback (missing file) | After 4s with no `.pagedjs_page` and no `window.Paged` → attach fake-A4-sheet CSS for `.page` + keep the button; the page stays viewable |
 
 ## B3. Print / Download PDF
@@ -198,6 +199,19 @@ numbers + PDF build.
    adding a script that must run before/after paged.js → set `async = false`.
 4. **Page number position `bottom: 4mm`**: safe because the 12mm bottom margin
    band is always empty. If `.page` padding changes, adjust accordingly.
+5. **`window.innerWidth` lies on mobile**: while content overflows (the raw
+   794px A4 sheet), mobile browsers report `innerWidth` as the overflowing
+   document width, not the screen - fit-width must read
+   `documentElement.clientWidth`, which always reports the real viewport.
+6. **Never scale content while paged.js is measuring**: a `zoom` on `.page`
+   (or on `.pagedjs_pages` mid-pagination) makes `getBoundingClientRect()`
+   return scaled sizes, so paged.js computes the wrong page count (e.g. 3 pages
+   on desktop but 2 on a phone). Zoom is applied only after the page count is
+   stable. Likewise the pre-pagination hide must be **inline** on `.page`, not
+   a CSS rule: paged.js clones stylesheet rules into its own blob, so a
+   rule-based `.page { visibility: hidden }` survives the reveal and leaves a
+   blank site. Inline styles are untouched by paged.js and keep the no-JS
+   print-pure fallback visible.
 
 ---
 
@@ -210,5 +224,6 @@ numbers + PDF build.
 - [ ] Preview (paged.js) and Print to PDF identical, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
 - [ ] PDF button (Download/Print dropdown): visible on screen, fully hidden when printing; mobile fit-width A4 sheet + button 12px from the edge.
+- [ ] `python3 scripts/check_view.py` all green (served `_site`): mobile sheet fits width, centered, no horizontal scroll, **page count identical across viewports**, CV content visible, menu tappable, print resets zoom. Screenshots land in `test-artifacts/`.
 - [ ] No `@media` block in `resume.css` (trap B4.1).
 - [ ] No px in `resume.css` (px only in the preview boot script), no inline styles, no spacer `<br>`.

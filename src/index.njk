@@ -262,14 +262,45 @@
   }
 
   /* Mobile fit-width: shrink the A4 sheet to screen width like a real PDF viewer.
-     CSS zoom - reset to 1 when printing (see @media print in the CSS above). */
+     CSS zoom - reset to 1 when printing (see @media print in the CSS above).
+     Width source is documentElement.clientWidth, NOT window.innerWidth: on
+     mobile browsers innerWidth tracks overflowing content (the unshrunk 794px
+     A4 sheet), so zoom would compute from the wrong width and never fit.
+     NEVER scale while pagination is running - scaled boxes skew paged.js height
+     measurements and corrupt the page count. The raw .page stays hidden behind
+     the gray backdrop until pagination is stable, then the sheets are zoomed
+     and revealed in one step. */
   var A4_PX = 793.7; /* 210mm @ 96dpi */
-  function fitWidth() {
-    var target = document.querySelector(".pagedjs_pages") || document.querySelector(".page");
-    if (!target) return;
-    var pad = window.innerWidth <= 640 ? 16 : 24;
-    target.style.zoom = Math.min(1, (window.innerWidth - pad) / A4_PX);
+  var fitMode = "pending"; /* pending → paged (stable) | fallback (paged.js broken) */
+  function viewWidth() {
+    return document.documentElement.clientWidth || window.innerWidth;
   }
+  function fitWidth() {
+    if (fitMode === "pending") return;
+    var target = fitMode === "paged"
+      ? document.querySelector(".pagedjs_pages")
+      : document.querySelector(".page");
+    if (!target) return;
+    target.style.zoom = Math.min(1, (viewWidth() - (viewWidth() <= 640 ? 16 : 24)) / A4_PX);
+  }
+  function revealContent() {
+    var s = document.querySelector("style[data-paged-backdrop-css]");
+    if (s) s.remove();
+    /* clear the inline hide - on ALL .page elements: paged.js clones .page
+       across splits and each clone carries the inline style */
+    var sheets = document.querySelectorAll(".page");
+    for (var i = 0; i < sheets.length; i++) sheets[i].style.visibility = "";
+  }
+  /* Gray backdrop + hidden sheet from the first paint (like a PDF viewer
+     loading). Only the backdrop goes in a style tag - the rest of CSS carries
+     @media print and paged.js flattens @media in styles it processes (spec
+     trap B4.1). The hide is set INLINE: paged.js clones stylesheet rules into
+     its own blob, so a rule-based hide would survive the reveal. Inline also
+     keeps the no-JS print-pure fallback (.page visible) untouched. */
+  ensureStyle("data-paged-backdrop-css", "html, body { background: #525659; }");
+  var earlyPage = document.querySelector(".page");
+  if (earlyPage) earlyPage.style.visibility = "hidden";
+  window.addEventListener("orientationchange", function () { setTimeout(fitWidth, 60); });
   var fitTimer;
   window.addEventListener("resize", function () {
     clearTimeout(fitTimer);
@@ -368,6 +399,8 @@
       pages[j].appendChild(label);
     }
     stamped = pages.length;
+    fitMode = "paged";
+    revealContent();
     ensureActions();
     return true;
   }
@@ -375,15 +408,24 @@
   /* Broken paged.js vendor → the A4 sheets + button still work, only page numbers are missing */
   var fallbackTimer = setTimeout(function () {
     if (!document.querySelector(".pagedjs_page") && !window.Paged) {
+      fitMode = "fallback";
+      revealContent();
       ensureStyle("data-paged-fallback-css", FALLBACK_CSS);
       ensureActions();
     }
   }, 4000);
 
   var timer = setInterval(function () {
-    if (tick() || Date.now() - started > TIMEOUT_MS) {
+    if (tick()) {
       clearInterval(timer);
       clearTimeout(fallbackTimer);
+    } else if (Date.now() - started > TIMEOUT_MS) {
+      /* timeout - never leave the sheet hidden behind the backdrop */
+      clearInterval(timer);
+      clearTimeout(fallbackTimer);
+      fitMode = document.querySelector(".pagedjs_page") ? "paged" : "fallback";
+      revealContent();
+      ensureActions();
     }
   }, INTERVAL_MS);
 })();

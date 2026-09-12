@@ -3,3 +3,4 @@ _site/
 src/cv.pdf
 .DS_Store
 .idea/
+test-artifacts/
