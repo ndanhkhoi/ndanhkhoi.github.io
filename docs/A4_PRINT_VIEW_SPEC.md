@@ -172,9 +172,9 @@ numbers + PDF build.
 | # | Task | Details |
 |---|---|---|
 | 1 | Poll `.pagedjs_page` every 150ms | Wait for pagination to **stabilize** (page count unchanged 3 consecutive polls) before stamping - re-stamps automatically if content changes |
-| 2 | Inject preview CSS **AFTER** pagination finishes | Gray backdrop, white sheets + shadow, margins between sheets. Must be injected after (trap B4.1) |
+| 2 | Inject preview CSS **AFTER** pagination finishes | Gray backdrop, white sheets + shadow, margins between sheets. Must be injected after (trap B4.1), and must stay **decoration only** - anything that changes the box model here silently breaks the page fills paged.js just measured (trap B4.9) |
 | 3 | Stamp **right-aligned** page numbers | `.preview-page-number` on each sheet, label `1 / n`, right margin = `PAGE_PADDING_MM` - change the label in the `pageLabel` function |
-| 4 | Compensate padding at split points | `[data-split-from]` / `[data-split-to]` get `12mm !important` back (must match `.page` padding - change both or neither) |
+| 4 | ~~Compensate padding at split points~~ | Moved to `resume.css` (`.pagedjs_area .page { padding: 12mm !important }`) - it is layout, so paged.js has to see it BEFORE it paginates (traps B4.2 / B4.9) |
 | 5 | **PDF** button (dropdown: Download PDF / Print PDF) | Fixed bottom-right, stroke SVG icons, chevron rotates when open, closes on outside click/Esc, hidden when printing. Download = link to `/cv.pdf` (direct download, **auto-hides when the file isn't built yet** - avoids confusion with print behavior); Print = `window.print()`. Must be appended **after** pagination finishes - an element outside body before that gets pulled into the content by paged.js |
 | 6 | Mobile fit-width | Shrinks the A4 sheet to screen width via CSS `zoom` (like a real PDF viewer). Width source = `documentElement.clientWidth` (NOT `window.innerWidth`, which tracks overflowing content on mobile - trap B4.5). Re-runs on resize/orientationchange, resets to `zoom: 1` when printing |
 | 6b | Loading state | From first paint: gray backdrop + spinner (`body::after`), the whole document at `opacity: 0` (raw `.page` inline, `.pagedjs_pages` via the early style tag) until pagination is stable - never zoom or unhide while pagination runs (traps B4.5/B4.6). At reveal: zoom the sheets, fade them in staggered (~0.35s each, 80ms apart), spinner off, then the PDF button fades in last (~0.55s delay). `prefers-reduced-motion` skips all of it |
@@ -192,9 +192,11 @@ numbers + PDF build.
    into global rules if the CSS is present while it runs → **never put
    `@media screen/print` in `resume.css`**. All preview-decoration CSS lives in
    the boot script, injected after pagination finishes.
-2. **Padding stripped at split points**: paged.js sets `padding-top: unset` on
-   fragments - contrary to `box-decoration-break: clone`. The boot script
-   compensates `12mm !important` on both ends.
+2. **Padding stripped at split points**: paged.js strips the padding of a
+   fragment it split - contrary to `box-decoration-break: clone`. Compensate
+   with `.pagedjs_area .page { padding: 12mm !important }` in **`resume.css`**,
+   never from the boot script: padding is layout, and paged.js must measure the
+   real box while it fills the pages (trap B4.9).
 3. **Script order**: dynamically inserted scripts are async by default. When
    adding a script that must run before/after paged.js → set `async = false`.
 4. **Page number position `bottom: 4mm`**: safe because the 12mm bottom margin
@@ -215,6 +217,31 @@ numbers + PDF build.
    because the reveal overrides them with inline styles / a late-injected
    `!important` rule. Inline styles also keep the no-JS print-pure fallback
    visible.
+7. **Grids are atomic**: paged.js cannot split a `display: grid` container
+   across pages - one straddling a page boundary loses its overflowing rows
+   instead of moving them. Every grid here (`.cert-list`, `.skills-grid`,
+   `.meta-grid`) is far smaller than a page, so `break-inside: avoid-page`
+   safely pushes it whole to the next page.
+8. **Fallback font metrics make pagination nondeterministic**: paginating
+   before Inter has loaded measures the fallback font, so the same content
+   breaks differently run to run. `window.PagedConfig = { auto: false }` holds
+   paged.js back and the boot script calls `PagedPolyfill.preview()` after
+   `document.fonts.ready` (3s cap, so a stuck font request can't hang the
+   preview).
+9. **Nothing may change the layout after pagination**: `.pagedjs_page_content`
+   is a multicol box one page wide (`column-width: 794px; column-fill: auto`)
+   and `.pagedjs_sheet` is `overflow: hidden`. Paged.js fills each sheet right
+   up to that height, so CSS injected afterwards that grows the box by even a
+   few px pushes the last block into the **next column**, where the sheet clips
+   it: the content disappears from the preview AND from the PDF while staying
+   in the DOM, so any DOM-counting test still passes. It is also position- and
+   timing-dependent, so it looks random. This is what the late
+   `[data-split-from/to]` padding did to Honors & Awards. `check_view.py`
+   guards it from both ends - "no content clipped outside the sheets" (any
+   `.page` descendant rendered outside its sheet rect) and "no overfilled
+   pages" (computed `.page` height taller than its `.pagedjs_area`; read the
+   COMPUTED height, `getBoundingClientRect()` only covers the first column
+   fragment).
 
 ---
 
@@ -227,6 +254,6 @@ numbers + PDF build.
 - [ ] Preview (paged.js) and Print to PDF identical, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
 - [ ] PDF button (Download/Print dropdown): visible on screen, fully hidden when printing; mobile fit-width A4 sheet + button 12px from the edge.
-- [ ] `python3 scripts/check_view.py` all green (served `_site`): mobile sheet fits width, centered, no horizontal scroll, **page count identical across viewports**, **no content dropped vs `resume.js`** (awards/skills/entries/section titles all present - guards the "section cut off at page bottom" bug), CV content visible, menu tappable, print resets zoom. Screenshots land in `test-artifacts/`.
+- [ ] `python3 scripts/check_view.py` all green (served `_site`): mobile sheet fits width, centered, no horizontal scroll, **page count identical across viewports**, **no content dropped vs `resume.js`** (awards/skills/entries/section titles all present - guards the "section cut off at page bottom" bug), **no content clipped outside the sheets / no overfilled pages** (trap B4.9 - the DOM-count check alone cannot see this), CV content visible, menu tappable, print resets zoom. Screenshots land in `test-artifacts/`.
 - [ ] No `@media` block in `resume.css` (trap B4.1).
 - [ ] No px in `resume.css` (px only in the preview boot script), no inline styles, no spacer `<br>`.

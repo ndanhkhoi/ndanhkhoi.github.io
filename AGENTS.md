@@ -39,6 +39,12 @@ Personal CV as **print-first A4 HTML**, statically built with **Eleventy** (SSG)
   decoration CSS lives in the boot script in `src/index.njk`, injected AFTER
   pagination finishes.
 - The `.page` padding (12mm) must match `PAGE_PADDING_MM` in the boot script - change both or neither.
+- **The boot script's late CSS is decoration only.** It lands after paged.js has
+  paginated, so anything affecting the box model (padding, margin, font-size,
+  width) invalidates the page fills paged.js measured: the overflow slides into
+  the next multicol column and `.pagedjs_sheet` clips it away - gone from the
+  preview and the PDF, still in the DOM (spec Part B, trap B4.9). Layout rules
+  belong in `resume.css`, which paged.js reads before it starts.
 - Output must be pure static HTML - no client-side JS rendering content (print-pure).
 - Content edits: touch only `src/_data/resume.js`, don't modify the template for each update.
 
