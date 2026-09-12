@@ -149,6 +149,7 @@ module.exports = {
   awards: [
     { name: "Top 2 Graduate with Excellent Certificate - Can Tho University (GPA: 9.48/10)", extra: "2019" },
     { name: "VNPT Star Award - Outstanding employee contributions", extra: "2020" },
+    { name: "IT World Awards - Silver Award in the Healthcare Service Product category for VNPT Home & Clinic (as a member of the project's development team)", extra: "2022" },
     { name: "Certificate of Merit - VNPT Corporation for exceptional performance", extra: "2022" }
   ],
 
@@ -185,7 +186,7 @@ module.exports = {
     {
       label: "Leadership & Collaboration",
       items: [
-        "Team leadership and mentorship (2 years leading 5-member development team)",
+        "Team leadership and mentorship (2+ years leading 5-member development team)",
         "Cross-functional collaboration with QA, DevOps, Product teams",
         "Code review and quality assurance practices"
       ]

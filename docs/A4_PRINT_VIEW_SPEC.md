@@ -227,6 +227,6 @@ numbers + PDF build.
 - [ ] Preview (paged.js) and Print to PDF identical, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
 - [ ] PDF button (Download/Print dropdown): visible on screen, fully hidden when printing; mobile fit-width A4 sheet + button 12px from the edge.
-- [ ] `python3 scripts/check_view.py` all green (served `_site`): mobile sheet fits width, centered, no horizontal scroll, **page count identical across viewports**, CV content visible, menu tappable, print resets zoom. Screenshots land in `test-artifacts/`.
+- [ ] `python3 scripts/check_view.py` all green (served `_site`): mobile sheet fits width, centered, no horizontal scroll, **page count identical across viewports**, **no content dropped vs `resume.js`** (awards/skills/entries/section titles all present - guards the "section cut off at page bottom" bug), CV content visible, menu tappable, print resets zoom. Screenshots land in `test-artifacts/`.
 - [ ] No `@media` block in `resume.css` (trap B4.1).
 - [ ] No px in `resume.css` (px only in the preview boot script), no inline styles, no spacer `<br>`.

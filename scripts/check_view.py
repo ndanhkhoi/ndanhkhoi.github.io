@@ -16,12 +16,36 @@ Artifacts (screenshots) land in test-artifacts/. Exit code 0 = all checks pass.
 
 import json
 import pathlib
+import subprocess
 import sys
 
 from playwright.sync_api import sync_playwright
 
 BASE_URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:4173"
 ART = pathlib.Path(__file__).resolve().parent.parent / "test-artifacts"
+
+
+def expected_from_resume_js():
+    """Expected rendered-item counts, straight from src/_data/resume.js.
+
+    Guards against paged.js silently DROPPING trailing sections at a page
+    boundary (the "Honors & Awards cut off" class of bug)."""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    out = subprocess.check_output(
+        ["node", "-e",
+         "const r=require(process.argv[1]);"
+         "const titles=['summary','education','experience','projects','writing',"
+         "'awards','skills','additional'].filter(k=>"
+         "k==='additional'?(r.languages.length||r.interests.length):"
+         "(k==='summary'?!!r.summary:r[k].length)).length;"
+         "console.log(JSON.stringify({"
+         "awards:r.awards.length,"
+         "skillGroups:r.skills.length,"
+         "entries:r.education.length+r.experience.length+r.projects.length+r.writing.length,"
+         "titles}))",
+         str(root / "src/_data/resume.js")],
+        text=True)
+    return json.loads(out)
 
 METRICS_JS = """
 () => {
@@ -64,6 +88,12 @@ METRICS_JS = """
     wrapOpacity: wrap ? getComputedStyle(wrap).opacity : null,
     pageOpacities: pages.map(el => getComputedStyle(el).opacity),
     spinnerContent: getComputedStyle(document.body, '::after').content,
+    renderedCounts: {
+      awards: document.querySelectorAll('.cert-list li').length,
+      skillGroups: document.querySelectorAll('.skill-group').length,
+      entries: document.querySelectorAll('.entry').length,
+      titles: document.querySelectorAll('.cv-section-title').length,
+    },
     contentVisible: (() => {
       const el = document.querySelector('.cv-name, .cv-summary, .entry');
       if (!el) return false;
@@ -76,6 +106,7 @@ METRICS_JS = """
 
 failures = []
 page_counts = {}
+EXPECTED = expected_from_resume_js()
 
 
 def check(label, ok, detail=""):
@@ -144,6 +175,9 @@ def run_device(browser, name, *, device=None, viewport=None, landscape=False):
           f"wrap={m['wrapOpacity']} pages={m['pageOpacities']}")
     check("loading spinner removed", m["spinnerContent"] == "none",
           f"spinner={m['spinnerContent']}")
+    check("no content dropped by pagination",
+          m["renderedCounts"] == EXPECTED,
+          f"rendered={m['renderedCounts']} expected={EXPECTED}")
     check("no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
     return page, m
