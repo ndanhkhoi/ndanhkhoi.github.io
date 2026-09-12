@@ -127,7 +127,6 @@ module.exports = {
         "Built with Java, Spring Boot, and reactive programming paradigms",
         "Provides @BotController and @CommandMapping annotations for intuitive bot development",
         "Published on JitPack for community use",
-        "13 GitHub stars",
         "Github: https://github.com/ndanhkhoi/simple-telegram-command-bot-spring-boot-starter"
       ]
     }
@@ -139,7 +138,7 @@ module.exports = {
       highlights: [
         "Published 10+ in-depth articles on backend development and DevOps practices",
         "Topics: Spring Boot, Apache Kafka, Event-Driven Architecture, Docker, GitOps, AOP",
-        "Total reach: 18,000+ views, 34+ upvotes from developer community",
+        "Total reach: 30,000+ views from developer community",
         "Profile: https://viblo.asia/u/ndanhkhoi"
       ]
     }
@@ -192,7 +191,7 @@ module.exports = {
     {
       label: "Communication & Professional",
       items: [
-        "Technical presentation and knowledge sharing (10+ blog articles, 18K+ views)",
+        "Technical presentation and knowledge sharing (10+ blog articles, 30K+ views)",
         "Stakeholder management and requirement analysis",
         "Agile/Scrum methodologies"
       ]
