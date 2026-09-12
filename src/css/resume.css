@@ -347,7 +347,7 @@ a {
 .cert-item {
     display: flex;
     align-items: baseline;
-    gap: var(--sp-3);
+    gap: var(--sp-8);
     padding-left: var(--sp-3);
     border-left: 0.75pt solid var(--c-rule);
     break-inside: avoid-page;
