@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,6 +27,24 @@
   <section class="cv-section">
     <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
     <p class="cv-summary">{{ resume.summary }}</p>
+  </section>
+  {% endif %}
+
+  {% if resume.education.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
+    {% for ed in resume.education %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{% if ed.degree %}{{ ed.degree }}{% else %}{{ ed.school }}{% endif %}</h3>
+          {% if ed.degree and ed.school %}<p class="entry-sub">{{ ed.school }}</p>{% endif %}
+        </div>
+        <p class="entry-period text-meta">{{ ed.period }}</p>
+      </div>
+      {% if ed.detail %}<p class="entry-desc">{{ ed.detail }}</p>{% endif %}
+    </article>
+    {% endfor %}
   </section>
   {% endif %}
 
@@ -62,12 +80,48 @@
       <div class="entry-head">
         <div class="entry-heading">
           <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+          {% if p.role %}<p class="entry-sub">{{ p.role }}</p>{% endif %}
         </div>
+        <p class="entry-period text-meta">{{ p.period }}</p>
       </div>
-      {% if p.tech.length %}<p class="entry-tech text-meta">{{ p.tech | join(" · ") }}</p>{% endif %}
-      {% if p.description %}<p class="entry-desc">{{ p.description }}</p>{% endif %}
+      {% if p.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in p.highlights -%}
+        <li>{{ h }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
     </article>
     {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.writing.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.writing }}</h2>
+    {% for w in resume.writing %}
+    <article class="entry">
+      <h3 class="entry-title">{{ w.title }}</h3>
+      {% if w.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in w.highlights -%}
+        <li>{{ h }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.awards.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
+    <ul class="cert-list">
+      {% for c in resume.awards %}
+      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} — {{ c.extra }}{% endif %}</li>
+      {% endfor %}
+    </ul>
   </section>
   {% endif %}
 
@@ -82,35 +136,6 @@
       </div>
       {% endfor %}
     </div>
-  </section>
-  {% endif %}
-
-  {% if resume.education.length %}
-  <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
-    {% for ed in resume.education %}
-    <article class="entry">
-      <div class="entry-head">
-        <div class="entry-heading">
-          <h3 class="entry-title">{{ ed.degree }}</h3>
-          <p class="entry-sub">{{ ed.school }}</p>
-        </div>
-        <p class="entry-period text-meta">{{ ed.period }}</p>
-      </div>
-      {% if ed.detail %}<p class="entry-desc">{{ ed.detail }}</p>{% endif %}
-    </article>
-    {% endfor %}
-  </section>
-  {% endif %}
-
-  {% if resume.certifications.length %}
-  <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.certifications }}</h2>
-    <ul class="cert-list">
-      {% for c in resume.certifications %}
-      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} — {{ c.extra }}{% endif %}</li>
-      {% endfor %}
-    </ul>
   </section>
   {% endif %}
 
