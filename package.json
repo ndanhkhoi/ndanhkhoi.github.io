@@ -4,13 +4,16 @@
   "version": "1.0.0",
   "description": "CV cá nhân — HTML print-first A4 (Eleventy + Paged.js)",
   "scripts": {
-    "dev": "eleventy --serve",
-    "build": "eleventy"
+    "dev": "npm run build && npm run build:pdf && eleventy --serve",
+    "build": "eleventy",
+    "build:pdf": "node scripts/build-pdf.mjs"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^3.1.0"
+    "@11ty/eleventy": "^3.1.0",
+    "pagedjs": "^0.4.3",
+    "puppeteer": "^24.0.0"
   },
   "dependencies": {
-    "pagedjs": "^0.4.3"
+    "@fontsource/inter": "^5.3.0"
   }
 }

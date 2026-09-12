@@ -60,6 +60,10 @@ Vì sao `@page margin: 0` + padding ở `.page`:
 }
 ```
 
+- **Font: Inter** — self-host qua npm `@fontsource/inter` (build hook copy subset
+  vietnamese + latin, weight 400/700 → `_site/fonts/`), KHÔNG dùng Google Fonts CDN.
+  Lý do: render đồng nhất mọi máy (không lệ thuộc font hệ thống) — kể cả bước
+  build PDF trên CI — và hỗ trợ tốt dấu tiếng Việt.
 - Không xuống dưới **9pt** cho nội dung, dưới **8pt** cho meta.
 - Nếu tràn trang: làm theo thứ tự B3 (dưới) trước khi nghĩ đến giảm font.
 
@@ -151,7 +155,13 @@ Build hook trong `eleventy.config.js` (event `eleventy.after`) copy
 `node_modules/pagedjs/dist/paged.polyfill.js` → `_site/vendor/`.
 Template load `/vendor/paged.polyfill.js` + boot script inline (cuối `src/index.njk`).
 
-Nâng cấp version: `npm install pagedjs@<version>` → phải test lại phân trang + số trang.
+**Build PDF build-time**: `npm run build:pdf` (`scripts/build-pdf.mjs`) mở
+`_site/index.html` bằng headless Chromium (puppeteer), chờ phân trang + stamp số
+trang ổn định rồi in ra `_site/cv.pdf` (A4, đúng DOM đã phân trang). Nút
+"Tải PDF" là link download trực tiếp tới file này.
+
+Nâng cấp version pagedjs: `npm install pagedjs@<version>` → phải test lại phân
+trang + số trang + build PDF.
 
 ## B2. Boot script làm gì
 
@@ -159,15 +169,17 @@ Nâng cấp version: `npm install pagedjs@<version>` → phải test lại phân
 |---|---|---|
 | 1 | Poll `.pagedjs_page` mỗi 150ms | Chờ phân trang **ổn định** (3 lần liên tiếp không đổi số trang) rồi mới stamp — tự re-stamp nếu nội dung đổi |
 | 2 | Gắn CSS preview **SAU** khi phân trang xong | Nền xám, tờ trắng + shadow, margin giữa các tờ. Bắt buộc tiêm sau (bẫy B4.1) |
-| 3 | Stamp số trang | `.preview-page-number` vào mỗi tờ, nhãn `1 / n` — đổi ở hàm `pageLabel` |
+| 3 | Stamp số trang **căn phải** | `.preview-page-number` vào mỗi tờ, nhãn `1 / n`, lề phải = `PAGE_PADDING_MM` — đổi nhãn ở hàm `pageLabel` |
 | 4 | Bù padding điểm tách trang | `[data-split-from]` / `[data-split-to]` được bù `12mm !important` (khớp padding `.page` — đổi lề thì đổi cả hai) |
-| 5 | Floating button **Tải PDF** | `position: fixed` góc phải-dưới, chỉ hiển thị màn hình (`@media print` ẩn), gọi `window.print()`. Phải append **sau** khi phân trang xong — element nằm ngoài body trước đó sẽ bị paged.js cuốn vào nội dung |
-| 6 | Fallback self-host hỏng (file vendor thiếu) | Sau 4s không có `.pagedjs_page` và không có `window.Paged` → gắn CSS giả lập tờ A4 cho `.page` + vẫn có nút Tải PDF, trang vẫn xem được |
+| 5 | Nút **PDF** (dropdown: Tải PDF / In PDF) | Fixed góc phải-dưới, icon SVG stroke, chevron xoay khi mở, đóng khi click ngoài/Esc, ẩn khi in. Tải = link `/cv.pdf` (download thẳng, **tự ẩn khi file chưa build** — tránh nhầm với hành vi in); In = `window.print()`. Phải append **sau** khi phân trang xong — element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung |
+| 6 | Fit-width mobile | Co tờ A4 vừa chiều rộng màn hình bằng CSS `zoom` (như viewer PDF thật), re-run khi resize, reset `zoom: 1` khi in |
+| 7 | Fallback vendor hỏng (file thiếu) | Sau 4s không có `.pagedjs_page` và không có `window.Paged` → gắn CSS giả lập tờ A4 cho `.page` + vẫn có nút, trang vẫn xem được |
 
-## B3. In PDF
+## B3. In / Tải PDF
 
-Nhấn nút **Tải PDF** (hoặc Ctrl/Cmd+P) → A4, scale **100%**, tắt header/footer
-trình duyệt. Mỗi `.pagedjs_page` = 1 tờ; số trang in ra y hệt màn hình.
+- **Tải PDF**: tải thẳng file `/cv.pdf` về máy (sinh ở build-time — xem B1).
+- **In PDF**: mở hộp thoại in trình duyệt → A4, scale **100%**, tắt header/footer.
+- Mỗi `.pagedjs_page` = 1 tờ; số trang in ra y hệt màn hình.
 
 ## B4. Bẫy đã gặp (quan trọng)
 
@@ -193,6 +205,6 @@ trình duyệt. Mỗi `.pagedjs_page` = 1 tờ; số trang in ra y hệt màn h�
 - [ ] Trang bị tách giữa section → lề 12mm lặp lại đúng (padding bù).
 - [ ] Preview (paged.js) và Print to PDF đồng nhất, số trang y hệt.
 - [ ] In: A4, scale 100%, tắt header/footer.
-- [ ] Nút Tải PDF: hiển thị trên màn hình, ẩn hoàn toàn khi in.
+- [ ] Nút PDF (dropdown Tải/In): hiển thị trên màn hình, ẩn hoàn toàn khi in; mobile fit-width tờ A4 + nút cách mép 12px.
 - [ ] Không có `@media` block nào trong `resume.css` (bẫy B4.1).
 - [ ] Không px trong `resume.css` (px chỉ nằm ở boot script preview), không inline style, không `<br>` đệm.

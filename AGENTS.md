@@ -11,8 +11,9 @@ CV cá nhân dạng **HTML print-first khổ A4**, build tĩnh bằng **Eleventy
 ## Cấu trúc
 
 - `src/_data/resume.js` — **TOÀN BỘ dữ liệu CV** (sửa thông tin cá nhân ở file này, không đụng layout; section trống tự ẩn)
-- `src/index.njk` — template CV + boot script Paged.js (preview A4 + số trang + nút Tải PDF)
+- `src/index.njk` — template CV + boot script Paged.js (preview A4 + số trang canh phải + nút PDF dropdown Tải/In + fit-width mobile)
 - `src/css/resume.css` — toàn bộ style tài liệu (theo quy chuẩn A4 bên dưới)
+- `scripts/build-pdf.mjs` — sinh `_site/cv.pdf` bằng headless Chromium (puppeteer), nút Tải PDF download file này
 - `docs/QUY_CHUAN_VIEW_IN_A4.md` — **quy chuẩn duy nhất** của dự án (source of truth):
   Phần A = thiết kế layout A4 (token `--sp-*/--fs-*/--lh-*`, phân trang
   `.section--atomic`/`.section-opening`/`.break-page`, chỉ `margin-bottom`, cấm
@@ -24,6 +25,8 @@ CV cá nhân dạng **HTML print-first khổ A4**, build tĩnh bằng **Eleventy
 
 - **Paged.js self-host**: dependency npm `pagedjs`, build hook trong `eleventy.config.js`
   copy `paged.polyfill.js` → `_site/vendor/`. KHÔNG dùng CDN.
+- **Font Inter self-host**: npm `@fontsource/inter`, build hook copy subset
+  vietnamese + latin (400/700) → `_site/fonts/`. KHÔNG dùng Google Fonts CDN.
 - **KHÔNG đặt `@media screen/print` trong `resume.css`** — bẫy paged.js flatten
   `@media` thành rule toàn cục (quy chuẩn Phần B, bẫy B4.1). Toàn bộ CSS trang trí
   preview nằm trong boot script `src/index.njk`, tiêm SAU khi phân trang xong.

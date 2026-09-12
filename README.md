@@ -12,7 +12,7 @@ A4 kèm số trang, in ra PDF 1:1 với preview.
 | File | Vai trò |
 |---|---|
 | `src/_data/resume.js` | **Toàn bộ dữ liệu CV** — sửa thông tin ở đây |
-| `src/index.njk` | Template CV + boot script preview A4 (số trang, nút Tải PDF) |
+| `src/index.njk` | Template CV + boot script preview A4 (số trang, nút PDF dropdown Tải/In) |
 | `src/css/resume.css` | Style tài liệu theo quy chuẩn view-in A4 |
 | `docs/QUY_CHUAN_VIEW_IN_A4.md` | Quy chuẩn duy nhất: thiết kế A4 + preview Paged.js + bẫy |
 
@@ -28,7 +28,8 @@ npm install
 npm run dev   # http://localhost:8080
 ```
 
-## In PDF
+## In / Tải PDF
 
-Nhấn nút **Tải PDF** ở góc phải-dưới (hoặc Ctrl/Cmd+P) → chọn "Save as PDF",
-khổ A4, scale **100%**, tắt header/footer trình duyệt. Số trang in ra y hệt preview.
+Nhấn nút **PDF** góc phải-dưới: **Tải PDF** tải thẳng file `cv.pdf` (sinh tự động
+mỗi lần deploy) về máy, **In PDF** mở hộp thoại in. Hoặc Ctrl/Cmd+P → A4, scale
+**100%**, tắt header/footer trình duyệt. Số trang in ra y hệt preview.

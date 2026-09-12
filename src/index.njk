@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{{ resume.meta.name }} — CV">
   <title>{{ resume.meta.name }} — CV</title>
+  <link rel="stylesheet" href="/fonts/inter.css">
   <link rel="stylesheet" href="/css/resume.css">
 </head>
 <body>
@@ -142,48 +143,78 @@
 (function () {
   "use strict";
 
-  /* Boot script preview A4 + số trang — chi tiết: docs/HUONG_DAN_PAGEDJS.md */
+  /* Boot script preview A4 + số trang — chi tiết: docs/QUY_CHUAN_VIEW_IN_A4.md Phần B */
   var PAGE_PADDING_MM = 12; /* phải khớp padding của .page trong resume.css */
+  var CV_PDF_URL = "/cv.pdf"; /* file thật sinh ở build-time (scripts/build-pdf.mjs) */
+  var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* tên file khi tải về */
   function pageLabel(i, n) { return i + " / " + n; } /* đổi nhãn số trang tại đây */
 
   var CSS = ""
-    + "body { background: #525659; }"
+    + "html, body { background: #525659; }"
     + ".pagedjs_page { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.4); margin: 10mm auto; position: relative; }"
-    + ".preview-page-number { position: absolute; left: 0; right: 0; bottom: 4mm; text-align: center;"
-    + " font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 8pt; line-height: 1; color: #666; }"
+    + ".preview-page-number { position: absolute; left: 0; right: " + PAGE_PADDING_MM + "mm; bottom: 4mm;"
+    + " text-align: right; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
+    + " font-size: 8pt; line-height: 1; color: #666; }"
     + ".pagedjs_area .page[data-split-from] { padding-top: " + PAGE_PADDING_MM + "mm !important; }"
     + ".pagedjs_area .page[data-split-to] { padding-bottom: " + PAGE_PADDING_MM + "mm !important; }"
-    + "@media print { body { background: #fff; } .pagedjs_page { box-shadow: none; margin: 0; } }";
+    + "@media print {"
+    + " html, body { background: #fff; padding: 0 !important; }"
+    + " .pagedjs_page { box-shadow: none; margin: 0; }"
+    + " .pagedjs_pages, .page { zoom: 1 !important; }" /* reset fit-width mobile khi in */
+    + "}";
 
   var FALLBACK_CSS = ""
-    + "body { background: #ececec; padding: 10mm 0; }"
+    + "html, body { background: #ececec; }"
+    + "body { padding: 10mm 0; }"
     + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
     + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
 
-  /* Floating button "Tải PDF" — chỉ hiển thị trên màn hình, ẩn khi in */
-  var FAB_CSS = ""
-    + ".pdf-fab { position: fixed; right: 20px; bottom: 20px; z-index: 9999; border: 0;"
-    + " border-radius: 9999px; padding: 12px 20px; background: #16437e; color: #fff;"
-    + " font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px;"
-    + " font-weight: 600; letter-spacing: 0.2px; cursor: pointer;"
-    + " box-shadow: 0 4px 14px rgba(0,0,0,0.35); }"
-    + ".pdf-fab:hover { background: #1d56a0; }"
-    + "@media print { .pdf-fab { display: none !important; } }";
+  /* Nút PDF (dropdown: Tải PDF / In PDF) — chỉ hiển thị màn hình, ẩn khi in */
+  var ACTIONS_CSS = ""
+    + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999; }"
+    + ".pdf-menu__toggle { display: inline-flex; align-items: center; gap: 8px; border: 0;"
+    + " border-radius: 9999px; padding: 13px 18px; background: #16437e; color: #fff;"
+    + " font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
+    + " font-size: 14px; font-weight: 700; letter-spacing: 0.2px; line-height: 1; cursor: pointer;"
+    + " box-shadow: 0 4px 14px rgba(0,0,0,0.35); -webkit-tap-highlight-color: transparent; }"
+    + ".pdf-menu__toggle:hover { background: #1d56a0; }"
+    + ".pdf-menu__toggle svg { width: 16px; height: 16px; }"
+    + ".pdf-menu__toggle .chevron { transition: transform 0.15s ease; }"
+    + ".pdf-menu--open .pdf-menu__toggle { background: #1d56a0; }"
+    + ".pdf-menu--open .pdf-menu__toggle .chevron { transform: rotate(180deg); }"
+    + ".pdf-menu__list { position: absolute; right: 0; bottom: calc(100% + 10px); display: none;"
+    + " flex-direction: column; gap: 4px; min-width: 176px; background: #fff; border-radius: 14px;"
+    + " padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }"
+    + ".pdf-menu--open .pdf-menu__list { display: flex; }"
+    + ".pdf-menu__item { display: flex; align-items: center; gap: 10px; border: 0; background: transparent;"
+    + " border-radius: 10px; padding: 11px 12px; color: #1f2937; text-align: left; text-decoration: none;"
+    + " font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
+    + " font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer;"
+    + " -webkit-tap-highlight-color: transparent; }"
+    + ".pdf-menu__item:hover { background: #eef3fa; color: #16437e; }"
+    + ".pdf-menu__item svg { width: 16px; height: 16px; }"
+    + "@media screen and (max-width: 640px) {"
+    + " body { padding-bottom: 76px; }" /* tránh nút che số trang tờ cuối */
+    + " .pdf-menu { right: 12px; bottom: 12px; }"
+    + " .pdf-menu__list { min-width: 200px; }"
+    + "}"
+    + "@media print { .pdf-menu { display: none !important; } }";
 
-  var fabAdded = false;
-  function ensureFab() {
-    if (fabAdded) return;
-    fabAdded = true;
-    ensureStyle("data-pdf-fab-css", FAB_CSS);
-    /* append SAU khi phân trang xong — element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = "pdf-fab";
-    b.textContent = "Tải PDF";
-    b.title = "In / Lưu dưới dạng PDF — A4, scale 100%, tắt header/footer";
-    b.addEventListener("click", function () { window.print(); });
-    document.body.appendChild(b);
-  }
+  var SVG_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+    + '<polyline points="14 2 14 8 20 8"/></svg>';
+  var SVG_CHEVRON = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<polyline points="18 15 12 9 6 15"/></svg>';
+  var SVG_PRINTER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>'
+    + '<rect x="6" y="14" width="12" height="8"/></svg>';
+  var SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
+    + '<polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
 
   function ensureStyle(marker, css) {
     if (document.querySelector("style[" + marker + "]")) return;
@@ -193,14 +224,100 @@
     document.head.appendChild(s); /* gắn SAU khi paged.js đã phân trang xong */
   }
 
-  var TIMEOUT_MS = 30000, INTERVAL_MS = 150, STABLE_POLLS = 3;
-  var started = Date.now(), lastCount = -1, stable = 0, stamped = -1;
+  /* Fit-width mobile: co tờ A4 vừa chiều rộng màn hình như viewer PDF thật.
+     CSS zoom — được reset về 1 khi in (xem @media print ở CSS trên). */
+  var A4_PX = 793.7; /* 210mm @ 96dpi */
+  function fitWidth() {
+    var target = document.querySelector(".pagedjs_pages") || document.querySelector(".page");
+    if (!target) return;
+    var pad = window.innerWidth <= 640 ? 16 : 24;
+    target.style.zoom = Math.min(1, (window.innerWidth - pad) / A4_PX);
+  }
+  var fitTimer;
+  window.addEventListener("resize", function () {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fitWidth, 150);
+  });
+
+  /* append SAU khi phân trang xong — element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
+  var actionsAdded = false;
+  function ensureActions() {
+    if (actionsAdded) return;
+    actionsAdded = true;
+    ensureStyle("data-pdf-menu-css", ACTIONS_CSS);
+    fitWidth();
+
+    var menu = document.createElement("div");
+    menu.className = "pdf-menu";
+
+    var list = document.createElement("div");
+    list.className = "pdf-menu__list";
+    list.setAttribute("role", "menu");
+
+    var printItem = document.createElement("button");
+    printItem.type = "button";
+    printItem.className = "pdf-menu__item";
+    printItem.setAttribute("role", "menuitem");
+    printItem.innerHTML = SVG_PRINTER + "<span>In PDF</span>";
+    printItem.title = "Mở hộp thoại in (Ctrl/Cmd+P)";
+
+    var dlItem = document.createElement("a");
+    dlItem.className = "pdf-menu__item";
+    dlItem.setAttribute("role", "menuitem");
+    dlItem.innerHTML = SVG_DOWNLOAD + "<span>Tải PDF</span>";
+    dlItem.href = CV_PDF_URL;
+    dlItem.setAttribute("download", CV_PDF_NAME);
+    dlItem.title = "Tải file PDF về máy";
+    /* File PDF chưa build (vd: chưa chạy build:pdf) → ẩn mục Tải,
+       tránh nhầm lẫn với hành vi in */
+    fetch(CV_PDF_URL, { method: "HEAD" }).then(function (r) {
+      if (!r.ok) {
+        dlItem.remove();
+        console.warn(CV_PDF_URL + " chưa tồn tại — chạy `npm run build:pdf` để có mục Tải PDF.");
+      }
+    }).catch(function () {});
+
+    var toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "pdf-menu__toggle";
+    toggle.innerHTML = SVG_FILE + "<span>PDF</span>" + SVG_CHEVRON;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-haspopup", "menu");
+
+    function setOpen(open) {
+      menu.classList.toggle("pdf-menu--open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      setOpen(!menu.classList.contains("pdf-menu--open"));
+    });
+    document.addEventListener("click", function (e) {
+      if (!menu.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") setOpen(false);
+    });
+    printItem.addEventListener("click", function () {
+      setOpen(false);
+      window.print();
+    });
+
+    list.appendChild(dlItem);
+    list.appendChild(printItem);
+    menu.appendChild(list);
+    menu.appendChild(toggle);
+    document.body.appendChild(menu);
+  }
+
+  var TIMEOUT_MS = 60000, INTERVAL_MS = 150, STABLE_POLLS = 3;
+  var started = Date.now(), lastCount = -1, stable = 0, stamped = -1, seenPage = false;
 
   function tick() {
     var pages = document.querySelectorAll(".pagedjs_page");
     if (!pages.length) return false;
+    if (!seenPage) { seenPage = true; started = Date.now(); } /* reset window khi phân trang bắt đầu (font chậm load) */
     ensureStyle("data-paged-preview-css", CSS);
-    ensureFab();
     if (pages.length === lastCount) stable++; else { stable = 0; lastCount = pages.length; }
     if (stable < STABLE_POLLS) return false;
     if (stamped === pages.length) return true;
@@ -214,14 +331,15 @@
       pages[j].appendChild(label);
     }
     stamped = pages.length;
+    ensureActions();
     return true;
   }
 
-  /* CDN paged.js hỏng → vẫn xem được dạng tờ A4 + nút Tải PDF, chỉ thiếu số trang */
+  /* Vendor paged.js hỏng → vẫn xem được dạng tờ A4 + nút, chỉ thiếu số trang */
   var fallbackTimer = setTimeout(function () {
     if (!document.querySelector(".pagedjs_page") && !window.Paged) {
       ensureStyle("data-paged-fallback-css", FALLBACK_CSS);
-      ensureFab();
+      ensureActions();
     }
   }, 4000);
 
