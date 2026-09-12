@@ -34,6 +34,13 @@
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
 }
+
+/* paged.js strips the padding of a fragment it splits - put it back HERE, in
+   the document stylesheet, so paged.js measures the real box while it fills
+   the pages. Never from the boot script (trap B4.9). */
+.pagedjs_area .page {
+    padding: 12mm !important;
+}
 ```
 
 | Setting | Value |
@@ -44,7 +51,12 @@
 
 Why `@page margin: 0` + padding on `.page`:
 - Paged.js reads `@page` to split pages; margin 0 lets `.page` fill the whole sheet and handle margins itself via padding.
-- `box-decoration-break: clone` + the boot script's padding compensation keep margins correct on split pages.
+- `box-decoration-break: clone` keeps the padding on every fragment, and
+  `.pagedjs_area .page` puts back what paged.js strips at a split, so a
+  continuation sheet gets the same 12mm as the first one.
+- That compensation is **layout**, so it belongs in `resume.css`, never in the
+  boot script: CSS injected after pagination grows a page paged.js already
+  filled, and the overflow gets clipped away silently (trap B4.9).
 
 ## A3. Typography
 
@@ -104,12 +116,23 @@ Long text: `overflow-wrap: anywhere; min-width: 0` on flex children.
 | Block that must not split (entry, header) | `.section--atomic` | `break-inside: avoid-page` |
 | Long content allowed to split | `.section--flow` | `break-inside: auto; orphans: 3; widows: 3` |
 | Title must not be orphaned at page bottom | `.section-opening` | `break-after: avoid-page` |
+| Title + the section's first content block travel together | `.section-start` (wraps both) | `break-inside: avoid-page` |
+| Grid that must move whole to the next page | `.cert-list` `.skills-grid` `.meta-grid` | `break-inside: avoid-page` |
 | Force a new page | `.break-page` (empty div) | `break-before: page` |
 
 Rules:
 1. **Never put `.section--atomic` on a block larger than one page** - the engine ignores `avoid` and you lose control.
 2. An entry (1 company / 1 project) is the atomic unit. A section with many entries may split **between** entries.
-3. Paged.js strips padding at split points → the boot script compensates with `12mm !important` (see B2).
+3. Paged.js strips padding at split points → `resume.css` compensates with
+   `.pagedjs_area .page { padding: 12mm !important }` (see A2, trap B4.9).
+4. **Grids never split**: paged.js cannot fragment a `display: grid` container -
+   one straddling a page boundary loses its overflowing rows. Every grid here is
+   far smaller than a page, so `break-inside: avoid-page` is always safe on them
+   (trap B4.7).
+5. `.section-opening` marks the intent, but what actually keeps a title with its
+   content is `.section-start` wrapping the title plus the first entry/grid: the
+   pair is one atomic block, so it moves to the next page together. Keep that
+   group small (title + one entry / one grid) so it never breaks rule 1.
 
 ## A7. Data
 
@@ -137,7 +160,8 @@ Required semantic classes:
 .cv-section  .cv-section-title
 .entry  .entry-head  .entry-title  .entry-sub  .entry-period  .entry-highlights
 .skills-grid  .skill-group  .meta-grid  .cert-list
-.section--atomic  .section--flow  .section-opening  .break-page  .text-meta
+.section--atomic  .section--flow  .section-opening  .section-start
+.break-page  .text-meta
 ```
 
 Forbidden classes: coordinate/value-based names (`.ml-10`, `.left-20`, `.block-1`...).
@@ -157,7 +181,9 @@ size. Each box maps 1:1 to one sheet of paper when printing. Page numbers are
 The build hook in `eleventy.config.js` (`eleventy.after` event) copies
 `node_modules/pagedjs/dist/paged.polyfill.js` → `_site/vendor/`.
 The template loads `/vendor/paged.polyfill.js` plus the inline boot script (end
-of `src/index.njk`).
+of `src/index.njk`), preceded by `<script>window.PagedConfig = { auto: false };
+</script>` - that tag must stay **before** the polyfill, otherwise paged.js
+starts paginating on its own before the fonts are ready (trap B4.8).
 
 **Build-time PDF**: `npm run build:pdf` (`scripts/build-pdf.mjs`) opens
 `_site/index.html` in headless Chromium (puppeteer), waits for pagination +
@@ -174,7 +200,8 @@ numbers + PDF build.
 | 1 | Poll `.pagedjs_page` every 150ms | Wait for pagination to **stabilize** (page count unchanged 3 consecutive polls) before stamping - re-stamps automatically if content changes |
 | 2 | Inject preview CSS **AFTER** pagination finishes | Gray backdrop, white sheets + shadow, margins between sheets. Must be injected after (trap B4.1), and must stay **decoration only** - anything that changes the box model here silently breaks the page fills paged.js just measured (trap B4.9) |
 | 3 | Stamp **right-aligned** page numbers | `.preview-page-number` on each sheet, label `1 / n`, right margin = `PAGE_PADDING_MM` - change the label in the `pageLabel` function |
-| 4 | ~~Compensate padding at split points~~ | Moved to `resume.css` (`.pagedjs_area .page { padding: 12mm !important }`) - it is layout, so paged.js has to see it BEFORE it paginates (traps B4.2 / B4.9) |
+| 4 | Gate pagination on the fonts | `window.PagedConfig = { auto: false }` before the polyfill; the boot script calls `PagedPolyfill.preview()` after `document.fonts.ready` (3s cap). Paginating on fallback metrics breaks differently every run (trap B4.8) |
+| 4b | *(not here)* padding at split points | Compensated from `resume.css`, not from this script - it is layout and paged.js must see it before it paginates (A2, traps B4.2 / B4.9) |
 | 5 | **PDF** button (dropdown: Download PDF / Print PDF) | Fixed bottom-right, stroke SVG icons, chevron rotates when open, closes on outside click/Esc, hidden when printing. Download = link to `/cv.pdf` (direct download, **auto-hides when the file isn't built yet** - avoids confusion with print behavior); Print = `window.print()`. Must be appended **after** pagination finishes - an element outside body before that gets pulled into the content by paged.js |
 | 6 | Mobile fit-width | Shrinks the A4 sheet to screen width via CSS `zoom` (like a real PDF viewer). Width source = `documentElement.clientWidth` (NOT `window.innerWidth`, which tracks overflowing content on mobile - trap B4.5). Re-runs on resize/orientationchange, resets to `zoom: 1` when printing |
 | 6b | Loading state | From first paint: gray backdrop + spinner (`body::after`), the whole document at `opacity: 0` (raw `.page` inline, `.pagedjs_pages` via the early style tag) until pagination is stable - never zoom or unhide while pagination runs (traps B4.5/B4.6). At reveal: zoom the sheets, fade them in staggered (~0.35s each, 80ms apart), spinner off, then the PDF button fades in last (~0.55s delay). `prefers-reduced-motion` skips all of it |
