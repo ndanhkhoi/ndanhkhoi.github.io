@@ -1,10 +1,10 @@
 /* ======================================================================
-   CV - CSS THEO QUY CHUẨN VIEW IN A4 (docs/QUY_CHUAN_VIEW_IN_A4.md)
+   CV - CSS PER THE A4 PRINT VIEW SPEC (docs/A4_PRINT_VIEW_SPEC.md)
    @page margin 0, .page padding 12mm, box-decoration-break: clone.
-   Font: Inter self-host (npm @fontsource/inter → _site/fonts, subset
-   vietnamese + latin). KHÔNG đặt @media screen/print trong file này -
-   bẫy paged.js flatten (quy chuẩn Phần B, bẫy B4.1). CSS preview nằm ở
-   boot script trong src/index.njk.
+   Font: Inter self-hosted (npm @fontsource/inter → _site/fonts, vietnamese
+   + latin subsets). Do NOT put @media screen/print in this file -
+   paged.js flattening trap (spec Part B, trap B4.1). Preview CSS lives
+   in the boot script in src/index.njk.
    ====================================================================== */
 
 @page {
@@ -29,7 +29,7 @@
     --lh-tight: 1.15;
     --lh-normal: 1.3;
     --lh-body: 1.4;
-    /* Màu - in an toàn (nền trắng, mực đậm) */
+    /* Colors - print-safe (white background, dark ink) */
     --c-text: #1a1a1a;
     --c-muted: #444;
     --c-accent: #16437e;
@@ -74,7 +74,7 @@ a {
     text-decoration: none;
 }
 
-/* Link trong nội dung - trông rõ là link (cả view lẫn PDF) */
+/* Links inside content - clearly look like links (both view and PDF) */
 .cv-summary a,
 .entry-desc a,
 .entry-highlights a {
@@ -98,7 +98,7 @@ a {
     line-height: var(--lh-normal);
 }
 
-/* ===== Phân trang (docs mục 6) ===== */
+/* ===== Pagination (spec A6) ===== */
 .section--atomic {
     break-inside: avoid-page;
     page-break-inside: avoid;
@@ -207,7 +207,7 @@ a {
     text-align: justify;
 }
 
-/* ===== Entry (kinh nghiệm / dự án / học vấn) ===== */
+/* ===== Entry (experience / projects / education) ===== */
 .entry {
     margin-bottom: var(--sp-6);
     break-inside: avoid-page;
@@ -302,7 +302,7 @@ a {
     font-size: var(--fs-base);
 }
 
-/* ===== Chứng chỉ ===== */
+/* ===== Certificates & awards ===== */
 .cert-list {
     list-style: none;
     padding: 0;
@@ -320,7 +320,7 @@ a {
     font-weight: 700;
 }
 
-/* ===== Meta grid (ngoại ngữ + sở thích) ===== */
+/* ===== Meta grid (languages + interests) ===== */
 .meta-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

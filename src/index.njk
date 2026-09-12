@@ -180,11 +180,11 @@
 (function () {
   "use strict";
 
-  /* Boot script preview A4 + số trang - chi tiết: docs/QUY_CHUAN_VIEW_IN_A4.md Phần B */
-  var PAGE_PADDING_MM = 12; /* phải khớp padding của .page trong resume.css */
-  var CV_PDF_URL = "/cv.pdf"; /* file thật sinh ở build-time (scripts/build-pdf.mjs) */
-  var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* tên file khi tải về */
-  function pageLabel(i, n) { return i + " / " + n; } /* đổi nhãn số trang tại đây */
+  /* A4 preview + page numbers boot script - details: docs/A4_PRINT_VIEW_SPEC.md Part B */
+  var PAGE_PADDING_MM = 12; /* must match .page padding in resume.css */
+  var CV_PDF_URL = "/cv.pdf"; /* real file generated at build time (scripts/build-pdf.mjs) */
+  var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* downloaded file name */
+  function pageLabel(i, n) { return i + " / " + n; } /* change the page-number label here */
 
   var CSS = ""
     + "html, body { background: #525659; }"
@@ -197,7 +197,7 @@
     + "@media print {"
     + " html, body { background: #fff; padding: 0 !important; }"
     + " .pagedjs_page { box-shadow: none; margin: 0; }"
-    + " .pagedjs_pages, .page { zoom: 1 !important; }" /* reset fit-width mobile khi in */
+    + " .pagedjs_pages, .page { zoom: 1 !important; }" /* reset mobile fit-width when printing */
     + "}";
 
   var FALLBACK_CSS = ""
@@ -206,7 +206,7 @@
     + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
     + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
 
-  /* Nút PDF (dropdown: Tải PDF / In PDF) - chỉ hiển thị màn hình, ẩn khi in */
+  /* PDF button (dropdown: Download PDF / Print PDF) - screen only, hidden when printing */
   var ACTIONS_CSS = ""
     + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999; }"
     + ".pdf-menu__toggle { display: inline-flex; align-items: center; gap: 8px; border: 0;"
@@ -231,7 +231,7 @@
     + ".pdf-menu__item:hover { background: #eef3fa; color: #16437e; }"
     + ".pdf-menu__item svg { width: 16px; height: 16px; }"
     + "@media screen and (max-width: 640px) {"
-    + " body { padding-bottom: 76px; }" /* tránh nút che số trang tờ cuối */
+    + " body { padding-bottom: 76px; }" /* keep the button from covering the last sheet's page number */
     + " .pdf-menu { right: 12px; bottom: 12px; }"
     + " .pdf-menu__list { min-width: 200px; }"
     + "}"
@@ -258,11 +258,11 @@
     var s = document.createElement("style");
     s.setAttribute(marker, "1");
     s.textContent = css;
-    document.head.appendChild(s); /* gắn SAU khi paged.js đã phân trang xong */
+    document.head.appendChild(s); /* attach AFTER paged.js has finished paginating */
   }
 
-  /* Fit-width mobile: co tờ A4 vừa chiều rộng màn hình như viewer PDF thật.
-     CSS zoom - được reset về 1 khi in (xem @media print ở CSS trên). */
+  /* Mobile fit-width: shrink the A4 sheet to screen width like a real PDF viewer.
+     CSS zoom - reset to 1 when printing (see @media print in the CSS above). */
   var A4_PX = 793.7; /* 210mm @ 96dpi */
   function fitWidth() {
     var target = document.querySelector(".pagedjs_pages") || document.querySelector(".page");
@@ -276,7 +276,7 @@
     fitTimer = setTimeout(fitWidth, 150);
   });
 
-  /* append SAU khi phân trang xong - element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
+  /* append AFTER pagination finishes - an element outside body before that gets pulled into the content by paged.js */
   var actionsAdded = false;
   function ensureActions() {
     if (actionsAdded) return;
@@ -295,22 +295,22 @@
     printItem.type = "button";
     printItem.className = "pdf-menu__item";
     printItem.setAttribute("role", "menuitem");
-    printItem.innerHTML = SVG_PRINTER + "<span>In PDF</span>";
-    printItem.title = "Mở hộp thoại in (Ctrl/Cmd+P)";
+    printItem.innerHTML = SVG_PRINTER + "<span>Print PDF</span>";
+    printItem.title = "Open the print dialog (Ctrl/Cmd+P)";
 
     var dlItem = document.createElement("a");
     dlItem.className = "pdf-menu__item";
     dlItem.setAttribute("role", "menuitem");
-    dlItem.innerHTML = SVG_DOWNLOAD + "<span>Tải PDF</span>";
+    dlItem.innerHTML = SVG_DOWNLOAD + "<span>Download PDF</span>";
     dlItem.href = CV_PDF_URL;
     dlItem.setAttribute("download", CV_PDF_NAME);
-    dlItem.title = "Tải file PDF về máy";
-    /* File PDF chưa build (vd: chưa chạy build:pdf) → ẩn mục Tải,
-       tránh nhầm lẫn với hành vi in */
+    dlItem.title = "Download the PDF file";
+    /* PDF not built yet (e.g. build:pdf not run) → hide the Download item,
+       avoids confusion with print behavior */
     fetch(CV_PDF_URL, { method: "HEAD" }).then(function (r) {
       if (!r.ok) {
         dlItem.remove();
-        console.warn(CV_PDF_URL + " chưa tồn tại - chạy `npm run build:pdf` để có mục Tải PDF.");
+        console.warn(CV_PDF_URL + " does not exist - run `npm run build:pdf` to get the Download PDF item.");
       }
     }).catch(function () {});
 
@@ -353,7 +353,7 @@
   function tick() {
     var pages = document.querySelectorAll(".pagedjs_page");
     if (!pages.length) return false;
-    if (!seenPage) { seenPage = true; started = Date.now(); } /* reset window khi phân trang bắt đầu (font chậm load) */
+    if (!seenPage) { seenPage = true; started = Date.now(); } /* reset the window once pagination starts (slow font loading) */
     ensureStyle("data-paged-preview-css", CSS);
     if (pages.length === lastCount) stable++; else { stable = 0; lastCount = pages.length; }
     if (stable < STABLE_POLLS) return false;
@@ -372,7 +372,7 @@
     return true;
   }
 
-  /* Vendor paged.js hỏng → vẫn xem được dạng tờ A4 + nút, chỉ thiếu số trang */
+  /* Broken paged.js vendor → the A4 sheets + button still work, only page numbers are missing */
   var fallbackTimer = setTimeout(function () {
     if (!document.querySelector(".pagedjs_page") && !window.Paged) {
       ensureStyle("data-paged-fallback-css", FALLBACK_CSS);

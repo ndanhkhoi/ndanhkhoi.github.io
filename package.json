@@ -2,7 +2,7 @@
   "name": "ndanhkhoi.github.io",
   "private": true,
   "version": "1.0.0",
-  "description": "CV cá nhân - HTML print-first A4 (Eleventy + Paged.js)",
+  "description": "Personal CV - print-first A4 HTML (Eleventy + Paged.js)",
   "scripts": {
     "dev": "npm run build && npm run build:pdf && eleventy --serve",
     "build": "eleventy",

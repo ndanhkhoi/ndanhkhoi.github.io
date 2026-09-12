@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
 
-/* Build PDF từ _site/index.html - in đúng DOM đã phân trang bởi paged.js */
+/* Build the PDF from _site/index.html - prints the exact DOM paginated by paged.js */
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SITE = path.join(ROOT, "_site");
 const MIME = {
@@ -16,11 +16,11 @@ const MIME = {
 };
 
 if (!fs.existsSync(path.join(SITE, "index.html"))) {
-  console.error("Chưa có _site/index.html - chạy `npm run build` trước.");
+  console.error("_site/index.html not found - run `npm run build` first.");
   process.exit(1);
 }
 
-/* Static server nhỏ cho _site (paged.js cần load CSS qua http, file:// bị chặn) */
+/* Tiny static server for _site (paged.js must load CSS over http; file:// is blocked) */
 const server = http.createServer((req, res) => {
   let p;
   try {
@@ -47,10 +47,10 @@ const browser = await puppeteer.launch({
 });
 try {
   const page = await browser.newPage();
-  await page.setViewport({ width: 1200, height: 900 }); /* viewport rộng → zoom = 1 */
+  await page.setViewport({ width: 1200, height: 900 }); /* wide viewport → zoom = 1 */
   await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle0" });
 
-  /* Chờ paged.js phân trang ổn định + số trang đã stamp (boot script xong việc) */
+  /* Wait for paged.js pagination to stabilize + page numbers stamped (boot script done) */
   await page.waitForFunction(
     () => {
       const pages = document.querySelectorAll(".pagedjs_page");
@@ -71,8 +71,8 @@ try {
     timeout: 60000
   });
 
-  /* Ghi thêm vào src/cv.pdf để passthrough copy mỗi lần eleventy rebuild
-     (eleventy wipe _site khi build → không mất file khi dev) */
+  /* Also copy into src/cv.pdf so the passthrough copy runs on every eleventy
+     rebuild (eleventy wipes _site on build → the file survives during dev) */
   fs.copyFileSync(out, path.join(ROOT, "src", "cv.pdf"));
 
   const kb = Math.round(fs.statSync(out).size / 1024);

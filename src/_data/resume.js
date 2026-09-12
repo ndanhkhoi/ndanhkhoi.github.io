@@ -1,12 +1,12 @@
 /**
- * TOÀN BỘ dữ liệu CV - sửa thông tin cá nhân tại file này, không cần đụng layout.
+ * ALL CV data - edit personal info in this file only; no layout changes needed.
  *
- * Quy ước:
- * - Section nào bỏ trống ([] hoặc "") sẽ tự ẩn khỏi trang CV.
- * - `labels` = tiêu đề các section - đổi ngôn ngữ CV tại đây.
- * - `meta.contacts`: icon thuộc {location, phone, mail, globe} (bỏ trống = không icon);
- *   `href` tùy chọn để làm link (tel:/mailto:/https:).
- * - Nội dung chuyển nguyên văn từ CV gốc (Nguyen-Duc-Anh-Khoi-CV 2.pdf).
+ * Conventions:
+ * - Any section left empty ([] or "") self-hides from the CV page.
+ * - `labels` = section titles - change the CV language here.
+ * - `meta.contacts`: icon is one of {location, phone, mail, globe} (empty = no icon);
+ *   optional `href` to make it a link (tel:/mailto:/https:).
+ * - Content transferred verbatim from the original CV (Nguyen-Duc-Anh-Khoi-CV 2.pdf).
  */
 module.exports = {
   meta: {

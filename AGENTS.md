@@ -1,48 +1,49 @@
-# AGENTS.md - CV cá nhân (ndanhkhoi.github.io)
+# AGENTS.md - Personal CV (ndanhkhoi.github.io)
 
-## Dự án
+## Project
 
-CV cá nhân dạng **HTML print-first khổ A4**, build tĩnh bằng **Eleventy** (SSG).
+Personal CV as **print-first A4 HTML**, statically built with **Eleventy** (SSG).
 
-- Branch `main` = code nguồn.
-- GitHub Actions build → push `_site` sang branch `gh-pages` (orphan, chỉ chứa HTML build).
-- GitHub Pages phục vụ từ `gh-pages`, thư mục gốc `/`.
+- Branch `main` = source code.
+- GitHub Actions builds → pushes `_site` to the `gh-pages` branch (orphan, build output only).
+- GitHub Pages serves from `gh-pages` at the root `/`.
 
-## Cấu trúc
+## Structure
 
-- `src/_data/resume.js` - **TOÀN BỘ dữ liệu CV** (sửa thông tin cá nhân ở file này, không đụng layout; section trống tự ẩn)
-- `src/index.njk` - template CV + boot script Paged.js (preview A4 + số trang canh phải + nút PDF dropdown Tải/In + fit-width mobile)
-- `src/css/resume.css` - toàn bộ style tài liệu (theo quy chuẩn A4 bên dưới)
-- `scripts/build-pdf.mjs` - sinh `_site/cv.pdf` bằng headless Chromium (puppeteer), nút Tải PDF download file này
-- `docs/QUY_CHUAN_VIEW_IN_A4.md` - **quy chuẩn duy nhất** của dự án (source of truth):
-  Phần A = thiết kế layout A4 (token `--sp-*/--fs-*/--lh-*`, phân trang
-  `.section--atomic`/`.section-opening`/`.break-page`, chỉ `margin-bottom`, cấm
-  `position: absolute` cho dữ liệu động, đơn vị mm/pt); Phần B = cơ chế preview
-  A4 + số trang + các bẫy paged.js
-- `.github/workflows/deploy.yml` - build & deploy tự động
+- `src/_data/resume.js` - **ALL CV data** (edit personal info in this file, don't touch the layout; empty sections self-hide)
+- `src/index.njk` - CV template + Paged.js boot script (A4 preview + right-aligned page numbers + PDF dropdown button Download/Print + mobile fit-width)
+- `src/css/resume.css` - all document styles (follows the A4 spec below)
+- `scripts/build-pdf.mjs` - generates `_site/cv.pdf` with headless Chromium (puppeteer); the Download PDF button downloads this file
+- `docs/A4_PRINT_VIEW_SPEC.md` - the project's **single spec** (source of truth):
+  Part A = A4 layout design (tokens `--sp-*/--fs-*/--lh-*`, pagination
+  `.section--atomic`/`.section-opening`/`.break-page`, `margin-bottom` only, no
+  `position: absolute` for dynamic data, mm/pt units); Part B = the A4 preview +
+  page numbers mechanism + paged.js traps
+- `.github/workflows/deploy.yml` - automated build & deploy
 
-## Quy ước kỹ thuật quan trọng
+## Key technical conventions
 
-- **Paged.js self-host**: dependency npm `pagedjs`, build hook trong `eleventy.config.js`
-  copy `paged.polyfill.js` → `_site/vendor/`. KHÔNG dùng CDN.
-- **Font Inter self-host**: npm `@fontsource/inter`, build hook copy subset
-  vietnamese + latin (400/700) → `_site/fonts/`. KHÔNG dùng Google Fonts CDN.
-- **Cấm ký tự `—` (em dash)** trong mọi nội dung hiển thị (web + PDF) - coi là
-  dấu hiệu AI, chủ dự án không muốn. Dùng `-` thường.
-- **Link luôn mở tab mới**: mọi `<a>` (template + filter `autolink` trong
-  `eleventy.config.js`) phải có `target="_blank" rel="noopener"`.
-- URL trong nội dung (bullet, summary) tự thành link bằng filter `autolink`
-  (dùng kèm `| safe`), click được ở cả HTML view và PDF.
-- **KHÔNG đặt `@media screen/print` trong `resume.css`** - bẫy paged.js flatten
-  `@media` thành rule toàn cục (quy chuẩn Phần B, bẫy B4.1). Toàn bộ CSS trang trí
-  preview nằm trong boot script `src/index.njk`, tiêm SAU khi phân trang xong.
-- Padding `.page` (12mm) phải khớp `PAGE_PADDING_MM` trong boot script - đổi lề thì đổi cả hai.
-- Output phải là HTML tĩnh thuần - không thêm client JS render nội dung (print tinh khiết).
-- Chỉnh sửa nội dung: chỉ đụng `src/_data/resume.js`, không sửa template cho từng lần cập nhật.
+- **Paged.js self-hosted**: npm dependency `pagedjs`, build hook in `eleventy.config.js`
+  copies `paged.polyfill.js` → `_site/vendor/`. Do NOT use a CDN.
+- **Inter font self-hosted**: npm `@fontsource/inter`, build hook copies the
+  vietnamese + latin subsets (400/700) → `_site/fonts/`. Do NOT use the Google Fonts CDN.
+- **No `—` (em dash) characters** in any displayed content (web + PDF) - seen as
+  an AI tell, the project owner doesn't want them. Use a plain `-`.
+- **Links always open in a new tab**: every `<a>` (template + `autolink` filter in
+  `eleventy.config.js`) must have `target="_blank" rel="noopener"`.
+- URLs inside content (bullets, summary) auto-link via the `autolink` filter
+  (used with `| safe`), clickable in both the HTML view and the PDF.
+- **Do NOT put `@media screen/print` in `resume.css`** - the paged.js trap where
+  `@media` gets flattened into global rules (spec Part B, trap B4.1). All preview
+  decoration CSS lives in the boot script in `src/index.njk`, injected AFTER
+  pagination finishes.
+- The `.page` padding (12mm) must match `PAGE_PADDING_MM` in the boot script - change both or neither.
+- Output must be pure static HTML - no client-side JS rendering content (print-pure).
+- Content edits: touch only `src/_data/resume.js`, don't modify the template for each update.
 
-## Lệnh hữu ích
+## Useful commands
 
 - Dev: `npm run dev` → http://localhost:8080
 - Build: `npm run build` → `_site/`
-- Deploy: commit + push vào `main`, Actions tự build sang `gh-pages`.
-- In PDF: mở trang web → Ctrl/Cmd+P → A4, scale 100%, tắt header/footer trình duyệt.
+- Deploy: commit + push to `main`, Actions builds to `gh-pages` automatically.
+- Print PDF: open the site → Ctrl/Cmd+P → A4, 100% scale, browser header/footer off.
