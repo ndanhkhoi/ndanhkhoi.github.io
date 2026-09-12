@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ resume.meta.name }} — CV">
+  <title>{{ resume.meta.name }} — CV</title>
+  <link rel="stylesheet" href="/css/resume.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="cv-header section--atomic">
+    <h1 class="cv-name">{{ resume.meta.name }}</h1>
+    <p class="cv-job-title">{{ resume.meta.jobTitle }}</p>
+    {% if resume.meta.contacts.length %}
+    <ul class="cv-contact">
+      {%- for c in resume.meta.contacts -%}
+      <li>{{ c }}</li>
+      {%- endfor -%}
+    </ul>
+    {% endif %}
+  </header>
+
+  {% if resume.summary %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
+    <p class="cv-summary">{{ resume.summary }}</p>
+  </section>
+  {% endif %}
+
+  {% if resume.experience.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.experience }}</h2>
+    {% for e in resume.experience %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{{ e.position }}</h3>
+          <p class="entry-sub">{{ e.company }}{% if e.location %} · {{ e.location }}{% endif %}</p>
+        </div>
+        <p class="entry-period text-meta">{{ e.period }}</p>
+      </div>
+      {% if e.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in e.highlights -%}
+        <li>{{ h }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.projects.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.projects }}</h2>
+    {% for p in resume.projects %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+        </div>
+      </div>
+      {% if p.tech.length %}<p class="entry-tech text-meta">{{ p.tech | join(" · ") }}</p>{% endif %}
+      {% if p.description %}<p class="entry-desc">{{ p.description }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.skills.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.skills }}</h2>
+    <div class="skills-grid">
+      {% for s in resume.skills %}
+      <div class="skill-group">
+        <p class="skill-group__label">{{ s.label }}</p>
+        <p class="skill-group__items">{{ s.items | join(" · ") }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if resume.education.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
+    {% for ed in resume.education %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{{ ed.degree }}</h3>
+          <p class="entry-sub">{{ ed.school }}</p>
+        </div>
+        <p class="entry-period text-meta">{{ ed.period }}</p>
+      </div>
+      {% if ed.detail %}<p class="entry-desc">{{ ed.detail }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.certifications.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.certifications }}</h2>
+    <ul class="cert-list">
+      {% for c in resume.certifications %}
+      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} — {{ c.extra }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if resume.languages.length or resume.interests.length %}
+  <section class="cv-section">
+    <h2 class="cv-section-title section-opening">{{ resume.labels.additional }}</h2>
+    <div class="meta-grid">
+      {% if resume.languages.length %}
+      <div class="meta-block">
+        <p class="meta-block__label">{{ resume.labels.languages }}</p>
+        {% for l in resume.languages %}
+        <p>{{ l.name }}{% if l.note %} — {{ l.note }}{% endif %}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if resume.interests.length %}
+      <div class="meta-block">
+        <p class="meta-block__label">{{ resume.labels.interests }}</p>
+        <p>{{ resume.interests | join(", ") }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+
+<script src="/vendor/paged.polyfill.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Boot script preview A4 + số trang — chi tiết: docs/HUONG_DAN_PAGEDJS.md */
+  var PAGE_PADDING_MM = 12; /* phải khớp padding của .page trong resume.css */
+  function pageLabel(i, n) { return i + " / " + n; } /* đổi nhãn số trang tại đây */
+
+  var CSS = ""
+    + "body { background: #525659; }"
+    + ".pagedjs_page { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.4); margin: 10mm auto; position: relative; }"
+    + ".preview-page-number { position: absolute; left: 0; right: 0; bottom: 4mm; text-align: center;"
+    + " font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 8pt; line-height: 1; color: #666; }"
+    + ".pagedjs_area .page[data-split-from] { padding-top: " + PAGE_PADDING_MM + "mm !important; }"
+    + ".pagedjs_area .page[data-split-to] { padding-bottom: " + PAGE_PADDING_MM + "mm !important; }"
+    + "@media print { body { background: #fff; } .pagedjs_page { box-shadow: none; margin: 0; } }";
+
+  var FALLBACK_CSS = ""
+    + "body { background: #ececec; padding: 10mm 0; }"
+    + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
+    + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
+
+  /* Floating button "Tải PDF" — chỉ hiển thị trên màn hình, ẩn khi in */
+  var FAB_CSS = ""
+    + ".pdf-fab { position: fixed; right: 20px; bottom: 20px; z-index: 9999; border: 0;"
+    + " border-radius: 9999px; padding: 12px 20px; background: #16437e; color: #fff;"
+    + " font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px;"
+    + " font-weight: 600; letter-spacing: 0.2px; cursor: pointer;"
+    + " box-shadow: 0 4px 14px rgba(0,0,0,0.35); }"
+    + ".pdf-fab:hover { background: #1d56a0; }"
+    + "@media print { .pdf-fab { display: none !important; } }";
+
+  var fabAdded = false;
+  function ensureFab() {
+    if (fabAdded) return;
+    fabAdded = true;
+    ensureStyle("data-pdf-fab-css", FAB_CSS);
+    /* append SAU khi phân trang xong — element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "pdf-fab";
+    b.textContent = "Tải PDF";
+    b.title = "In / Lưu dưới dạng PDF — A4, scale 100%, tắt header/footer";
+    b.addEventListener("click", function () { window.print(); });
+    document.body.appendChild(b);
+  }
+
+  function ensureStyle(marker, css) {
+    if (document.querySelector("style[" + marker + "]")) return;
+    var s = document.createElement("style");
+    s.setAttribute(marker, "1");
+    s.textContent = css;
+    document.head.appendChild(s); /* gắn SAU khi paged.js đã phân trang xong */
+  }
+
+  var TIMEOUT_MS = 30000, INTERVAL_MS = 150, STABLE_POLLS = 3;
+  var started = Date.now(), lastCount = -1, stable = 0, stamped = -1;
+
+  function tick() {
+    var pages = document.querySelectorAll(".pagedjs_page");
+    if (!pages.length) return false;
+    ensureStyle("data-paged-preview-css", CSS);
+    ensureFab();
+    if (pages.length === lastCount) stable++; else { stable = 0; lastCount = pages.length; }
+    if (stable < STABLE_POLLS) return false;
+    if (stamped === pages.length) return true;
+
+    var old = document.querySelectorAll(".preview-page-number");
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    for (var j = 0; j < pages.length; j++) {
+      var label = document.createElement("div");
+      label.className = "preview-page-number";
+      label.textContent = pageLabel(j + 1, pages.length);
+      pages[j].appendChild(label);
+    }
+    stamped = pages.length;
+    return true;
+  }
+
+  /* CDN paged.js hỏng → vẫn xem được dạng tờ A4 + nút Tải PDF, chỉ thiếu số trang */
+  var fallbackTimer = setTimeout(function () {
+    if (!document.querySelector(".pagedjs_page") && !window.Paged) {
+      ensureStyle("data-paged-fallback-css", FALLBACK_CSS);
+      ensureFab();
+    }
+  }, 4000);
+
+  var timer = setInterval(function () {
+    if (tick() || Date.now() - started > TIMEOUT_MS) {
+      clearInterval(timer);
+      clearTimeout(fallbackTimer);
+    }
+  }, INTERVAL_MS);
+})();
+</script>
+</body>
+</html>

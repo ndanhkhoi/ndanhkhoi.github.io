@@ -1,0 +1,16 @@
+{
+  "name": "ndanhkhoi.github.io",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CV cá nhân — HTML print-first A4 (Eleventy + Paged.js)",
+  "scripts": {
+    "dev": "eleventy --serve",
+    "build": "eleventy"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.0"
+  },
+  "dependencies": {
+    "pagedjs": "^0.4.3"
+  }
+}
