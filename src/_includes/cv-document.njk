@@ -93,8 +93,11 @@
     <article class="entry">
       <div class="entry-head">
         <div class="entry-heading">
-          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}" target="_blank" rel="noopener">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+          <h3 class="entry-title">{{ p.name }}</h3>
           {% if p.role %}<p class="entry-sub">{{ p.role }}</p>{% endif %}
+          {# The URL is printed, not hidden behind the title: on paper a bare
+             anchor is a dead end. One visible line = one PDF link annotation. #}
+          {% if p.link %}<p class="entry-link"><a href="{{ p.link }}" target="_blank" rel="noopener">{{ p.link }}</a></p>{% endif %}
         </div>
         <p class="entry-period text-meta">{{ p.period }}</p>
       </div>
@@ -139,7 +142,10 @@
       <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
       <ul class="cert-list">
         {% for c in resume.awards %}
-        <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
+        <li class="cert-item">
+          <span class="cert-name">{{ c.name }}</span>
+          {% if c.extra %}<span class="cert-extra text-meta">{{ c.extra }}</span>{% endif %}
+        </li>
         {% endfor %}
       </ul>
     </div>

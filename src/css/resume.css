@@ -4,7 +4,7 @@
    Font: Inter self-hosted (npm @fontsource/inter → _site/fonts, vietnamese
    + latin subsets). Do NOT put @media screen/print in this file -
    paged.js flattening trap (spec Part B, trap B4.1). Preview CSS lives
-   in the boot script in src/index.njk.
+   in the boot script in src/print.njk.
    ====================================================================== */
 
 @page {
@@ -77,6 +77,7 @@ a {
 /* Links inside content - clearly look like links (both view and PDF) */
 .cv-summary a,
 .entry-desc a,
+.entry-link a,
 .entry-highlights a {
     text-decoration: underline;
     text-decoration-thickness: 0.5pt;
@@ -258,8 +259,11 @@ a {
     color: var(--c-accent);
 }
 
-.entry-title a:hover {
-    text-decoration: underline;
+/* The project URL, printed under the entry title (see cv-document.njk) */
+.entry-link {
+    font-size: var(--fs-meta);
+    line-height: var(--lh-normal);
+    overflow-wrap: anywhere;
 }
 
 .entry-sub {
@@ -288,10 +292,6 @@ a {
 
 .entry-highlights li::marker {
     color: var(--c-accent);
-}
-
-.entry-tech {
-    margin-bottom: var(--sp-1);
 }
 
 .entry-desc {
@@ -330,24 +330,39 @@ a {
 }
 
 /* ===== Certificates & awards ===== */
+/* One award per row: the titles are long sentences, so two columns wrapped them
+   into an unreadable block. Name left, year right (like .entry-head), with an
+   accent rule marking where each award starts. */
 .cert-list {
     list-style: none;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--sp-2) var(--sp-8);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-3);
     /* atomic like the other grids - see .skills-grid note (trap B4.7) */
     break-inside: avoid-page;
     page-break-inside: avoid;
 }
 
-.cert-list li {
+.cert-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-3);
+    padding-left: var(--sp-3);
+    border-left: 0.75pt solid var(--c-rule);
     break-inside: avoid-page;
     page-break-inside: avoid;
 }
 
 .cert-name {
-    font-weight: 700;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cert-extra {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 /* ===== Meta grid (languages + interests) ===== */
