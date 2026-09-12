@@ -99,12 +99,12 @@ module.exports = {
       name: "Moni - Expense Manager Web App",
       role: "Personal Project",
       period: "Aug 2023 - Present",
-      link: "https://moni.ndanhkhoi.name.vn/",
+      link: "https://moni.khoinda.vn/",
       highlights: [
         "A modern personal finance management platform built to explore latest Java and React ecosystem",
         "Stack: Java 21, Spring Boot 3.x, React 18, PostgreSQL, Redis, Docker, GitHub Actions CI/CD",
         "Implemented JWT authentication, RESTful APIs, responsive UI, and automated deployment pipeline",
-        "Live demo: https://moni.ndanhkhoi.name.vn/"
+        "Live demo: https://moni.khoinda.vn/"
       ]
     },
     {
