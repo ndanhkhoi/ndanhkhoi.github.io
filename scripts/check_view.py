@@ -38,11 +38,14 @@ def expected_from_resume_js():
          "'awards','skills','additional'].filter(k=>"
          "k==='additional'?(r.languages.length||r.interests.length):"
          "(k==='summary'?!!r.summary:r[k].length)).length;"
+         "const labels=['summary','education','experience','projects','writing',"
+         "'awards','skills'].filter(k=>k==='summary'?!!r.summary:r[k].length)"
+         ".map(k=>r.labels[k]);"
          "console.log(JSON.stringify({"
          "awards:r.awards.length,"
          "skillGroups:r.skills.length,"
          "entries:r.education.length+r.experience.length+r.projects.length+r.writing.length,"
-         "titles}))",
+         "titles,awardNames:r.awards.map(a=>a.name.slice(0,30)),labels}))",
          str(root / "src/_data/resume.js")],
         text=True)
     return json.loads(out)
@@ -94,6 +97,46 @@ METRICS_JS = """
       entries: document.querySelectorAll('.entry').length,
       titles: document.querySelectorAll('.cv-section-title').length,
     },
+    /* Content present in the DOM but rendered OUTSIDE its sheet: when a page is
+       overfilled, the multicol of .pagedjs_page_content pushes the overflowing
+       block into the next column and .pagedjs_sheet (overflow: hidden) clips it
+       away - invisible on screen AND absent from the PDF, while every DOM count
+       above still matches (spec Part B, trap B4.9). */
+    clippedContent: (() => {
+      const out = [];
+      [...document.querySelectorAll('.pagedjs_page')].forEach((pg, i) => {
+        const sb = (pg.querySelector('.pagedjs_sheet') || pg).getBoundingClientRect();
+        pg.querySelectorAll('.page *').forEach(el => {
+          if (!el.textContent.trim()) return;
+          const r = el.getBoundingClientRect();
+          if (!r.width && !r.height) return;
+          if (r.right > sb.right + 1 || r.left < sb.left - 1
+              || r.bottom > sb.bottom + 1 || r.top < sb.top - 1)
+            out.push((i + 1) + ': ' + el.textContent.replace(/\s+/g, ' ').trim().slice(0, 40));
+        });
+      });
+      return out.slice(0, 8);
+    })(),
+    /* Same failure seen from its cause: the .page box paged.js filled no longer
+       fits the page area it was measured against. Read the COMPUTED height -
+       getBoundingClientRect() only covers the first column fragment, so an
+       overfilled page still measures exactly one sheet tall there. */
+    overfilledPages: [...document.querySelectorAll('.pagedjs_page')].map((pg, i) => {
+      const inner = pg.querySelector('.page');
+      const area = pg.querySelector('.pagedjs_area');
+      if (!inner || !area) return null;
+      const over = parseFloat(getComputedStyle(inner).height)
+        - parseFloat(getComputedStyle(area).height);
+      return over > 1 ? `${i + 1}: +${Math.round(over)}px` : null;
+    }).filter(Boolean),
+    orphanedTitles: [...document.querySelectorAll('.cv-section-title')].filter(t => {
+      const group = t.closest('.section-start');
+      if (!group) return true; /* every title must live in a section-start group */
+      const content = group.querySelectorAll('.entry, .cv-summary, .cert-list, .skills-grid, .meta-grid');
+      if (!content.length) return true;
+      const page = t.closest('.pagedjs_page');
+      return ![...content].some(el => el.closest('.pagedjs_page') === page);
+    }).map(t => t.textContent.trim()),
     contentVisible: (() => {
       const el = document.querySelector('.cv-name, .cv-summary, .entry');
       if (!el) return false;
@@ -107,6 +150,7 @@ METRICS_JS = """
 failures = []
 page_counts = {}
 EXPECTED = expected_from_resume_js()
+EXPECTED_COUNTS = {k: EXPECTED[k] for k in ("awards", "skillGroups", "entries", "titles")}
 
 
 def check(label, ok, detail=""):
@@ -176,11 +220,37 @@ def run_device(browser, name, *, device=None, viewport=None, landscape=False):
     check("loading spinner removed", m["spinnerContent"] == "none",
           f"spinner={m['spinnerContent']}")
     check("no content dropped by pagination",
-          m["renderedCounts"] == EXPECTED,
-          f"rendered={m['renderedCounts']} expected={EXPECTED}")
+          m["renderedCounts"] == EXPECTED_COUNTS,
+          f"rendered={m['renderedCounts']} expected={EXPECTED_COUNTS}")
+    check("no content clipped outside the sheets", not m["clippedContent"],
+          str(m["clippedContent"]))
+    check("no overfilled pages", not m["overfilledPages"],
+          str(m["overfilledPages"]))
+    check("no orphaned section titles", not m["orphanedTitles"],
+          str(m["orphanedTitles"]))
     check("no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
     return page, m
+
+
+def check_pdf():
+    """The built cv.pdf must contain the same content as the view (awards,
+    section labels) - guards the puppeteer print path dropping trailing
+    content at page boundaries."""
+    import shutil
+    pdf = ART.parent / "_site" / "cv.pdf"
+    if not shutil.which("pdftotext"):
+        print("  [SKIP] cv.pdf text check (pdftotext not installed)")
+        return
+    if not pdf.exists():
+        check("cv.pdf exists", False, str(pdf))
+        return
+    text = subprocess.check_output(["pdftotext", str(pdf), "-"],
+                                   text=True).casefold()
+    for name in EXPECTED["awardNames"]:
+        check(f"pdf contains award '{name[:24]}...'", name.casefold() in text)
+    for label in EXPECTED["labels"]:
+        check(f"pdf contains section label '{label}'", label.casefold() in text)
 
 
 def main():
@@ -273,6 +343,8 @@ def main():
                  print_background=True, margin={"top": "0", "right": "0",
                                                 "bottom": "0", "left": "0"})
         ctx.close()
+        print("\n=== Built cv.pdf content ===")
+        check_pdf()
         browser.close()
 
     print("\n" + "=" * 60)
