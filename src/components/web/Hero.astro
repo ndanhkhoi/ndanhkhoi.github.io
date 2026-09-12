@@ -1,0 +1,73 @@
+---
+/* The first screen: who, what, and the two things a recruiter wants within a
+   second - the PDF and a way to make contact. Everything here comes from
+   src/data/resume.js; nothing is written into this file. */
+import resume from "../../data/resume.js";
+import { titleCase } from "../../lib/text";
+import ContactIcon from "../ContactIcon.astro";
+import Icon from "./Icon.astro";
+
+const { meta, web } = resume;
+const displayName = titleCase(meta.name);
+
+const place = meta.contacts.find((c) => c.icon === "location");
+const mail = meta.contacts.find((c) => c.icon === "mail");
+---
+<section class="hero" id="top">
+  <div class="container">
+    {place && (
+      <p class="hero__eyebrow reveal" style="--i: 0">
+        <span class="hero__pulse" aria-hidden="true"></span>
+        {place.text}
+      </p>
+    )}
+
+    <h1 class="hero__name reveal" style="--i: 1"><span>{displayName}</span></h1>
+    <p class="hero__role reveal" style="--i: 2">{meta.jobTitle}</p>
+    <p class="lead hero__tagline reveal" style="--i: 3">{web.tagline}</p>
+
+    <div class="hero__actions reveal" style="--i: 4">
+      {/* The PDF is the artifact the build produces; opening it in a tab lets
+          the browser's own viewer handle reading, printing and saving. */}
+      <a class="btn btn--primary btn--lg" href="/cv.pdf" target="_blank" rel="noopener">
+        <Icon name="download" />
+        <span>Download CV</span>
+      </a>
+      {mail?.href && (
+        <a class="btn btn--lg" href={mail.href}>
+          <Icon name="mail" />
+          <span>Get in touch</span>
+        </a>
+      )}
+    </div>
+
+    <ul class="contact-list reveal" style="--i: 5">
+      {meta.contacts.map((c) => (
+        <li>
+          {c.href ? (
+            <a class="contact-chip" href={c.href} target={c.href.startsWith("http") ? "_blank" : null} rel={c.href.startsWith("http") ? "noopener" : null}>
+              <ContactIcon name={c.icon} />
+              <span>{c.text}</span>
+            </a>
+          ) : (
+            <span class="contact-chip">
+              <ContactIcon name={c.icon} />
+              <span>{c.text}</span>
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+
+    {web.stats.length > 0 && (
+      <ul class="stats">
+        {web.stats.map((s, i) => (
+          <li class="stat card reveal" style={`--i: ${6 + i}`}>
+            <p class="stat__value">{s.value}</p>
+            <p class="stat__label">{s.label}</p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</section>

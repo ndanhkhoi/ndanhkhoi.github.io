@@ -1,32 +1,39 @@
 ---
-permalink: /print.html
+/* /print.html - stage 1 of the build (docs/A4_PRINT_VIEW_SPEC.md Part B).
+ *
+ * paged.js splits the document below into A4 sheets and the boot script stamps
+ * the page numbers; scripts/build-pdf.mjs then prints this exact DOM to
+ * _site/cv.pdf. Pagination happens here and nowhere else.
+ *
+ * It is also the plain-HTML copy of the CV: the web resume links here from its
+ * footer and from every viewer failure path.
+ */
+import resume from "../data/resume.js";
+import CvDocument from "../components/print/CvDocument.astro";
+import "../styles/resume.css";
+
+const title = `${resume.meta.name} - CV`;
 ---
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{{ resume.meta.name }} - CV">
-  <title>{{ resume.meta.name }} - CV</title>
-  <link rel="canonical" href="/">
-  <link rel="stylesheet" href="/fonts/inter.css">
-  <link rel="stylesheet" href="/css/resume.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content={title} />
+  <title>{title}</title>
+  <link rel="canonical" href="/" />
+  <link rel="stylesheet" href="/fonts/inter.css" />
 </head>
 <body>
-{% include "cv-document.njk" %}
+<CvDocument />
 
-<script>window.PagedConfig = { auto: false };</script>
-<script src="/vendor/paged.polyfill.js"></script>
-<script>
+<script is:inline>window.PagedConfig = { auto: false };</script>
+<script is:inline src="/lib/paged.polyfill.js"></script>
+<script is:inline>
 (function () {
   "use strict";
 
-  /* Print source: paged.js splits the document into A4 sheets and this script
-     stamps the page numbers. scripts/build-pdf.mjs prints exactly this DOM to
-     _site/cv.pdf, and the site's viewer (/) renders that PDF - so this page is
-     the only place pagination ever happens. Details: docs/A4_PRINT_VIEW_SPEC.md.
-
-     Everything injected from here lands AFTER paged.js has paginated, so it
+  /* Everything injected from here lands AFTER paged.js has paginated, so it
      must stay pure decoration: CSS that changes the box model invalidates the
      page fills paged.js measured and the overflow gets clipped (trap B4.9).
      Page layout, .page padding included, belongs in resume.css. */

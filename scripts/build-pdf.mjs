@@ -80,6 +80,12 @@ try {
     timeout: 60000
   });
 
+  /* `astro dev` serves public/, not _site, so mirror the file there too -
+     otherwise every "Download CV" link 404s during development. public/ is
+     generated and gitignored; the build always overwrites this copy. */
+  fs.mkdirSync(path.join(ROOT, "public"), { recursive: true });
+  fs.copyFileSync(out, path.join(ROOT, "public", "cv.pdf"));
+
   const kb = Math.round(fs.statSync(out).size / 1024);
   console.log(`cv.pdf written (${kb} KB)`);
 } finally {

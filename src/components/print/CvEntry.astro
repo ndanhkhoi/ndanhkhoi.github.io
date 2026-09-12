@@ -1,0 +1,46 @@
+---
+/* One entry of the A4 document: a title line, the period on the right, then
+   either bullets or a one-line description. Education, work, projects and
+   writing all render through here so the four sections stay typographically
+   identical on paper.
+
+   Class names follow docs/A4_PRINT_VIEW_SPEC.md (A9) - resume.css styles them
+   and scripts/check_view.py counts `.entry` to prove pagination dropped
+   nothing, so do not rename them. */
+import { autolink } from "../../lib/autolink";
+
+interface Props {
+  title: string;
+  sub?: string;
+  period?: string;
+  link?: string;
+  desc?: string;
+  highlights?: string[];
+  /* Title only, no period column - used by the writing section. */
+  bare?: boolean;
+}
+
+const { title, sub, period, link, desc, highlights = [], bare = false } = Astro.props;
+---
+<article class="entry">
+  {bare ? (
+    <h3 class="entry-title">{title}</h3>
+  ) : (
+    <div class="entry-head">
+      <div class="entry-heading">
+        <h3 class="entry-title">{title}</h3>
+        {sub && <p class="entry-sub">{sub}</p>}
+        {/* The URL is printed, not hidden behind the title: on paper a bare
+            anchor is a dead end. One visible line = one PDF link annotation. */}
+        {link && <p class="entry-link"><a href={link} target="_blank" rel="noopener">{link}</a></p>}
+      </div>
+      <p class="entry-period text-meta">{period}</p>
+    </div>
+  )}
+  {desc && <p class="entry-desc" set:html={autolink(desc)} />}
+  {highlights.length > 0 && (
+    <ul class="entry-highlights">
+      {highlights.map((h) => <li set:html={autolink(h)} />)}
+    </ul>
+  )}
+</article>

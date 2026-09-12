@@ -1,10 +1,10 @@
 # A4 PRINT VIEW SPEC - HTML CV
 
 > The project's source of truth: Part A is the A4 CV layout design standard,
-> Part B is the build pipeline that paginates it, prints it to `cv.pdf` and
-> renders that file as the site. Goal: **the web view = the actual printout** -
-> literally the same file. This is the only spec; every layout/print change must
-> follow it.
+> Part B is the build pipeline that paginates it and prints it to `cv.pdf`.
+> The site has two renderings of one data file - a web resume at `/` and the A4
+> document at `/cv.pdf` - and Part A governs the second one. This is the only
+> spec; every layout/print change must follow it.
 
 ---
 
@@ -14,11 +14,11 @@
 
 | # | Principle | Details |
 |---|---|---|
-| 1 | **View = Print** | Structural, not a discipline: the site renders `cv.pdf` itself (Part B), so the screen shows the printout. The only screen-only element is the viewer toolbar. |
+| 1 | **The PDF is the document** | `cv.pdf` is printed from `/print.html` at build time (Part B) and shipped as a file. Nothing re-typesets it later, so what a reader downloads is what the build produced. The web resume at `/` is a separate rendering of the same data and is governed by nothing in Part A. |
 | 2 | **Data integrity** | No truncating, no hiding, no `text-overflow: ellipsis`. Long content → more pages, never squeezed into one page. |
 | 3 | **Natural document flow** | Grid/Flex/flow. Never `position: absolute` for dynamic data. |
 | 4 | **Consistency** | Share CSS variables (`--sp-*`, `--fs-*`, `--lh-*`). No local overrides with arbitrary numbers. |
-| 5 | **Standard print units** | mm for layout/spacing, pt for fonts. Avoid px in `resume.css`; px belongs to the screen-only files (`viewer.css`, the boot script's decoration CSS). |
+| 5 | **Standard print units** | mm for layout/spacing, pt for fonts. Avoid px in `resume.css`; px belongs to the screen-only files (`site.css`, the boot script's decoration CSS). |
 | 6 | **Print target** | Chrome print to PDF: A4 portrait, 100% scale, browser header/footer off. |
 
 ## A2. Page setup & printable area
@@ -169,73 +169,53 @@ Forbidden classes: coordinate/value-based names (`.ml-10`, `.left-20`, `.block-1
 
 ---
 
-# PART B - BUILD PIPELINE: PAGINATION → PDF → VIEWER
+# PART B - BUILD PIPELINE: DATA → PAGINATION → PDF, AND THE WEB RESUME
 
-## B1. The three stages
+## B1. What is built
 
-The browser does not typeset the CV. The build paginates it once, prints it to a
-PDF, and the site renders that PDF - so "view = print" is a property of the
-architecture, not something the CSS has to keep re-earning.
+`src/data/resume.js` is rendered twice, by two independent sets of components:
 
 | # | Stage | Produces | Engine |
 |---|---|---|---|
-| 1 | `src/print.njk` → `/print.html` | the CV split into `.pagedjs_page` sheets, page numbers stamped | paged.js, in the build's Chromium |
+| 1 | `src/pages/print.astro` → `/print.html` | the CV split into `.pagedjs_page` sheets, page numbers stamped | paged.js, in the build's Chromium |
 | 2 | `scripts/build-pdf.mjs` | `_site/cv.pdf` | puppeteer `page.pdf()` |
-| 3 | `src/index.njk` + `src/js/viewer.js` → `/` | the visible site | pdf.js, in the visitor's browser |
+| - | `src/pages/index.astro` → `/` | the web resume | plain static HTML + CSS, one enhancement script |
 
-Both page templates include the same document body,
-`src/_includes/cv-document.njk`, so there is exactly one copy of the CV markup.
+Stages 1 and 2 are a chain: the PDF *is* the print page, printed. `/` is not in
+that chain - it renders the same data its own way and links the finished file.
 
-**Why the PDF is the source of truth.** When the browser re-paginated the CV on
-every visit, two layout engines had to agree: paged.js in the visitor's browser
-and paged.js under puppeteer. They disagreed on mobile - different fonts,
-different viewport, different text metrics - and the failure mode was silent
-content loss (trap B4.9). Pagination now happens once, on one machine, and every
-visitor receives its output byte for byte.
+**Why pagination happens once, in the build.** When the browser re-paginated the
+CV on every visit, two layout engines had to agree: paged.js in the visitor's
+browser and paged.js under puppeteer. They disagreed on mobile - different
+fonts, different viewport, different text metrics - and the failure mode was
+silent content loss (trap B4.9). Pagination now happens once, on one machine,
+and every reader receives its output byte for byte.
 
-**Self-hosted, no CDN.** `pagedjs` and `pdfjs-dist` are npm dependencies. The
-`eleventy.after` hook in `eleventy.config.js` copies into `_site/vendor/`:
+**No PDF renderer in the page.** An earlier version rendered `cv.pdf` on the
+homepage with pdf.js. That shipped ~2.2MB of library to every visitor, needed a
+hand-maintained toolbar, and pinned the project to an API that drops methods
+between majors (retired traps B4.10-B4.13). The site now links the file and lets
+the browser's own PDF viewer open it - which is also where readers already know
+how to print, zoom and save.
+
+**Self-hosted, no CDN.** `pagedjs` and `@fontsource/inter` are npm dependencies;
+`scripts/prepare-assets.mjs` copies them into the generated `public/` before
+every dev and build run, and Astro copies `public/` into `_site` verbatim:
 
 ```text
-vendor/paged.polyfill.js          pagination for /print.html
-vendor/pdfjs/pdf.min.mjs          pdf.js core API (ES module)
-vendor/pdfjs/pdf.worker.min.mjs   its worker
-vendor/pdfjs/pdf_viewer.mjs       the viewer components: PDFViewer, PDFLinkService, ...
-vendor/pdfjs/pdf_viewer.css       their stylesheet - version-matched, never hand-copied
-vendor/pdfjs/images/              icons pdf_viewer.css resolves relative to itself
+lib/paged.polyfill.js   pagination for /print.html
+fonts/inter.css         @font-face rules, vietnamese + latin subsets
+fonts/files/*.woff2     Inter 400/500/600/700 (400/700 for the A4 document, 500/600 for web UI type)
 ```
 
-The hook throws if a pdf.js file is missing, so an upgrade that moves a path
-fails the build instead of shipping a blank page.
+`public/` is generated and gitignored - nothing is committed into it by hand.
+`scripts/build-pdf.mjs` also mirrors the finished `cv.pdf` there so `astro dev`
+can serve it.
 
-**What npm does and does not give you.** `pdfjs-dist` ships the API plus the
-viewer *components* - it has no `web/viewer.html`. The complete viewer from
-pdf.js's online demo exists only in the GitHub release zip, unminified
-(`pdf.mjs` 840KB vs npm's minified 448KB, worker 2176KB vs 1236KB) and about
-20MB unpacked. Vendoring that would mean a build-time download from GitHub or
-~15MB of committed third-party code, and a version tracked separately from npm -
-so the homepage uses the components, wired the way pdf.js's own
-`examples/components/simpleviewer.mjs` does, with this project's toolbar around
-them. One consequence: `PDFThumbnailViewer` is **not** among the exports, so the
-demo's thumbnail sidebar is not reusable - it would have to be hand-built.
+`pdfjs-dist` remains a **devDependency**: `scripts/pdf-facts.mjs` reads the built
+PDF back with it to assert what it contains. Nothing ships it to a visitor.
 
-pdf.js's `standard_fonts/` and `cmaps/` are deliberately **not** copied (~2MB).
-`cv.pdf` comes out of Chrome's own printer, which embeds and subsets every font
-it draws with - including whatever it falls back to for a glyph Inter lacks - so
-the viewer never requests them. Confirmed by watching the homepage's network
-traffic, not assumed. If a future PDF ever needs them, copy the directories and
-pass `standardFontDataUrl` / `cMapUrl` to `getDocument`.
-
-The homepage also loads **no webfont**: it renders a PDF, and the only text it
-sets itself is the toolbar, so `viewer.css` uses a system stack. Inter is loaded
-inside the `<noscript>` branch, where the browser really is typesetting the CV.
-
-Homepage weight: ~2.27MB uncompressed over 9 requests, of which 2.16MB is pdf.js
-itself. That is the price of the architecture; it gzips to roughly a quarter.
-
-Upgrading either library: `npm install pagedjs@<v>` / `npm install
-pdfjs-dist@<v>` → rebuild → `scripts/check_view.py`. pdf.js in particular drops
-APIs between majors (trap B4.10).
+Upgrading paged.js: `npm install pagedjs@<v>` → rebuild → `scripts/check_view.py`.
 
 ## B2. Stage 1 - `/print.html`, where pagination happens
 
@@ -246,7 +226,11 @@ one sheet of paper. Page numbers are **real DOM**, so they land in the PDF.
 `window.PagedConfig = { auto: false }` must stay **before** the polyfill tag,
 otherwise paged.js starts paginating before the fonts are ready (trap B4.8).
 
-What the boot script at the end of `src/print.njk` does:
+All three script tags are `is:inline` so Astro leaves them exactly where they are
+written, in that order - bundling would break both the ordering and the global
+`PagedConfig` assignment.
+
+What the boot script at the end of `src/pages/print.astro` does:
 
 | # | Task | Details |
 |---|---|---|
@@ -258,8 +242,13 @@ What the boot script at the end of `src/print.njk` does:
 | 6 | Broken-vendor fallback | 4s with no `.pagedjs_page` and no `window.Paged` → fake-A4-sheet CSS, so the page stays readable |
 | - | *(not here)* padding at split points | Compensated from `resume.css`: it is layout, and paged.js must see it before it paginates (A2, trap B4.9) |
 
-This page is also the site's HTML fallback - `<link rel="canonical" href="/">`
-keeps the two URLs from competing as duplicate content.
+`build.inlineStylesheets: "never"` in `astro.config.mjs` keeps `resume.css` a
+`<link>` rather than an inlined `<style>`, so paged.js reads the document
+stylesheet the same way on every build regardless of its size.
+
+This page is also the site's plain-HTML copy of the CV - the web resume links it
+in the footer. `<link rel="canonical" href="/">` keeps the two URLs from
+competing as duplicate content.
 
 ## B3. Stage 2 - `cv.pdf`
 
@@ -269,68 +258,50 @@ cannot load CSS over `file://`), opens `/print.html` in headless Chromium at a
 the stamped-number count, then prints with `preferCSSPageSize` +
 `printBackground`.
 
-The result is written straight into `_site/cv.pdf` and nowhere else. **It is not
-an Eleventy input**: Eleventy only writes the files it owns and leaves the rest
-of the output directory alone, so the PDF survives every rebuild on its own. An
-earlier version kept a copy at `src/cv.pdf` and passthrough-copied it back,
-which was not only unnecessary but actively harmful - it preserved a stale PDF
-for an HTML-only build to restore.
-
-**The PDF step is never optional, so it is never a step you can forget:**
+The result is written into `_site/cv.pdf` (and mirrored to `public/cv.pdf` for
+the dev server). It is **not** an Astro input: Astro clears `_site` at the start
+of a build and the PDF is written after, so the order in `npm run build` is what
+guarantees the PDF matches the HTML beside it.
 
 | Command | Runs |
 |---|---|
 | `npm run build` | `build:html` then `build:pdf` - the only build the deploy uses |
-| `npm run build:html` | Eleventy alone; for the rare case where Chromium isn't available |
-| `npm run dev` | Eleventy watch; the `eleventy.after` hook reprints the PDF on **every** rebuild (`ELEVENTY_RUN_MODE` is `serve`/`watch`) - a data, template, CSS or JS edit all trigger it, ~1.6s |
+| `npm run build:html` | assets + `astro build`; for the rare case where Chromium isn't available |
+| `npm run dev` | assets + `astro dev`; serves the `cv.pdf` from the last full build |
 
-The homepage renders `cv.pdf`, so HTML without a matching PDF is a site with
-nothing to show. The deploy workflow re-reads the built file with
-`scripts/pdf-facts.mjs` and fails if it has no pages, rather than publishing it.
+The deploy workflow re-reads the built file with `scripts/check-pdf.mjs` and
+fails rather than publishing a PDF that no longer says what `resume.js` says.
 
-## B4. Stage 3 - `/`, the pdf.js viewer
+## B4. The web resume - `/`
 
-`src/js/viewer.js` is pdf.js's own viewer, wired the way
-`examples/components/simpleviewer.mjs` does it:
+Static HTML from `src/pages/index.astro` and its components in
+`src/components/web/`, styled by `src/styles/site.css`. The only JavaScript is
+`src/scripts/site.ts` (~3KB, inlined by Astro), and it adds four things: the
+theme toggle, the scrollspy, the reading-progress bar, and reveal-on-scroll.
 
-```js
-const eventBus    = new EventBus();
-const linkService = new PDFLinkService({ eventBus, externalLinkTarget: LinkTarget.BLANK });
-const pdfViewer   = new PDFViewer({ container, viewer, eventBus, linkService });
-linkService.setViewer(pdfViewer);
-pdfViewer.setDocument(await pdfjsLib.getDocument({ url: "/cv.pdf" }).promise);
-```
-
-`PDFViewer` owns the page views, scrolling, zoom, the text layer and the
-annotation layer. **None of that is reimplemented here** - the only thing this
-project writes is the toolbar and its state.
-
-| Element | Notes |
+| Concern | How it is handled |
 |---|---|
-| Markup | `#viewerContainer > #viewer.pdfViewer`, the structure `pdf_viewer.css` expects; the container must be positioned and scrollable |
-| Zoom | `pdfViewer.currentScaleValue`, default `"auto"` - page-width on a phone, capped near 125% on a desktop, the same default the pdf.js viewer ships |
-| Links | `externalLinkTarget: LinkTarget.BLANK` + `externalLinkRel: "noopener"`, so the PDF's annotations follow the project's new-tab rule |
-| Find | No `PDFFindController` - it only drives a find bar, and there is none. Native Ctrl/Cmd+F works on the text layer of the rendered pages |
-| Toolbar | page prev/next + page box, zoom -/+ and a zoom menu, print, download. Its state syncs on `pagesinit`, `pagechanging` and `scalechanging` (trap B4.13) |
-| Ready signal | `<html data-pv-ready="<pages>">`, set on `pagesloaded` (trap B4.12) |
-| Print | Hands the real `cv.pdf` to the browser through an off-screen iframe, falling back to opening it in a new tab. Download links straight at the file |
-| Resize | 150ms debounce, then re-resolve a named zoom against the new width and `pdfViewer.update()` |
+| Completeness | Every section is server-rendered. `check_view.py` asserts one rendered block per record, section by section, against `resume.js` |
+| No-JS | The page is finished before any script runs. The reveal animation's start state is behind `html[data-anim="on"]`, set by an inline script and claimed by `site.ts`; a 2.5s timer removes it if the module never arrives (trap B4.14) |
+| Reduced motion | `prefers-reduced-motion: reduce` makes the page static and skips the animation flag entirely |
+| Themes | Light and dark; light reuses the CV's own ink (`#16437e`). The choice is stored, and the page follows the OS until the visitor overrides it. Applied before first paint, so there is no flash |
+| Links | Every off-site link is `target="_blank" rel="noopener"`, the same rule the PDF's link annotations follow |
+| The PDF | Linked from the header, the hero and the footer; it opens in a new tab and the browser's viewer takes over |
+| Sections | `src/lib/sections.ts` is the one list feeding the nav, the scrollspy and the heading numbers. An empty section drops out of all three at once |
 
-**Degradation**: a document that fails to load shows a link to `/print.html`. A
-viewer that never boots at all is caught by a 12s inline timer that shows the
-same link. With JS off, the homepage's `<noscript>` carries the full CV markup,
-so the page is never an empty canvas to a crawler or a reader.
-
-`src/css/viewer.css` styles this page only. It never runs paged.js, so unlike
-`resume.css` it is free to use `@media` (trap B4.1 is a paged.js behaviour).
+`site.css` styles this page only. It never runs paged.js, so unlike `resume.css`
+it is free to use `@media` (trap B4.1 is a paged.js behaviour). The two
+stylesheets are never loaded together.
 
 ## B5. Print / Download PDF
 
-- **Download PDF**: downloads `/cv.pdf` directly.
-- **Print PDF**: prints that same file through the browser's own PDF path.
-- **Ctrl/Cmd+P on the homepage**: prints the rendered canvases - a raster copy of
-  the same pages, chrome hidden, one sheet per page. The vector file is one click
-  away in the menu.
+- **Download CV / CV (PDF)**: opens `/cv.pdf` in a new tab. Printing, zooming
+  and saving are then the browser's own PDF viewer's job.
+- **`/print.html`**: the same document as paginated HTML, for readers and
+  crawlers that want selectable text without the PDF.
+- **Ctrl/Cmd+P on `/`**: prints the web resume, with the navigation and the
+  backdrop dropped (`@media print` in `site.css`). It is a fallback, not the
+  artifact - the A4 file is one click away.
 
 ## B6. Traps we've hit (important)
 
@@ -339,8 +310,8 @@ Numbering is stable: code comments reference these by number.
 1. **Paged.js "flattens" `@media print`**: the polisher flattens `@media` blocks
    into global rules if the CSS is present while it runs → **never put
    `@media screen/print` in `resume.css`**. Decoration CSS lives in the
-   `print.njk` boot script, injected after pagination finishes. `viewer.css` is
-   exempt - that page never loads paged.js.
+   `print.astro` boot script, injected after pagination finishes. `site.css`
+   is exempt - that page never loads paged.js.
 2. **Padding stripped at split points**: paged.js strips the padding of a
    fragment it split - contrary to `box-decoration-break: clone`. Compensate
    with `.pagedjs_area .page { padding: 12mm !important }` in **`resume.css`**,
@@ -354,13 +325,13 @@ Numbering is stable: code comments reference these by number.
 5. **`window.innerWidth` lies on mobile**: while content overflows, mobile
    browsers report `innerWidth` as the overflowing document width, not the
    screen. Anything sizing to the viewport must read
-   `documentElement.clientWidth`. Still live in `viewer.js`.
+   `documentElement.clientWidth` - which is what `check_view.py` measures
+   overflow against.
 6. **Never scale content while paged.js is measuring** *(retired mechanism, live
    lesson)*: a `zoom`/`transform` on `.page` mid-pagination made
    `getBoundingClientRect()` return scaled sizes, so paged.js computed the wrong
    page count - 3 pages on desktop, 2 on a phone. The browser no longer
-   paginates, so nothing scales any more; the successor rule is B4.4 in the
-   viewer, re-render instead of scale.
+   paginates, so nothing scales any more.
 7. **Grids are atomic**: paged.js cannot split a `display: grid` container
    across pages - one straddling a page boundary loses its overflowing rows
    instead of moving them. Every grid here (`.cert-list`, `.skills-grid`,
@@ -386,29 +357,68 @@ Numbering is stable: code comments reference these by number.
    pages" (computed `.page` height taller than its `.pagedjs_area`; read the
    COMPUTED height, `getBoundingClientRect()` only covers the first column
    fragment).
-10. **pdf.js drops APIs between majors**: v6 removed
+Traps 10-13 belong to the retired pdf.js viewer. They are kept, and kept at
+their numbers, because the numbering is referenced from code and because they
+are the reasons the viewer is gone - read them before anyone proposes rendering
+the PDF in the page again.
+
+10. *(retired)* **pdf.js drops APIs between majors**: v6 removed
     `viewport.convertToViewportRectangle`, which an earlier hand-rolled link
     layer here was built on - it failed silently and the CV lost every clickable
     link. Using `PDFViewer` instead of reimplementing its layers is the real fix,
     since the components move with the API. Re-run `check_view.py` after every
     `pdfjs-dist` upgrade regardless.
-11. **`pdf_viewer.mjs` has no imports - it reads `globalThis.pdfjsLib`**, which
+11. *(retired)* **`pdf_viewer.mjs` has no imports - it reads `globalThis.pdfjsLib`**, which
     `pdf.min.mjs` sets as a side effect. So import order is load-bearing: the
     core must be imported before the components (static imports evaluate in
     source order), exactly as pdf.js's own example loads the two script tags in
     that order. Reverse them and the viewer dies at module-evaluation time,
     before any error handler of ours exists.
-12. **`PDFViewer` renders lazily, so "all canvases painted" is not readiness**:
+12. *(retired)* **`PDFViewer` renders lazily, so "all canvases painted" is not readiness**:
     it only paints pages near the viewport. A ready flag that waited for
     `pagesCount` canvases passed on a phone - where the whole document happens to
     fit on screen - and hung forever on a desktop. Use the viewer's own
     `pagesloaded` event. For the same reason `check_view.py` scrolls the
     container to the end before counting canvases, text spans or links.
-13. **Toolbar state must sync after `pagesinit`, not after `setDocument`**:
+13. *(retired)* **Toolbar state must sync after `pagesinit`, not after `setDocument`**:
     `pdfViewer.pagesCount` is still 0 while the document is being set up, so
     syncing there computes `1 >= 0` and ships a permanently disabled "next page"
     button. Any toolbar state derived from the page count belongs in the
     `pagesinit` handler.
+
+Traps 14-18 are the web resume's, all found by `check_view.py` on the first run
+of the new page.
+
+14. **An animation start state in plain CSS can hide the whole CV.**
+    Reveal-on-scroll works by starting at `opacity: 0` and letting a script add
+    the class that ends the transition. Written as an unconditional rule, a
+    blocked, 404'd or throwing script leaves the entire page invisible - to
+    readers and to crawlers. The start state must therefore be **opt-in from the
+    document**: `html[data-anim="on"]`, set by an inline script before first
+    paint, claimed by the module (`data-anim-ready`), and torn back off by a
+    2.5s timer if the module never arrives. `check_view.py` asserts, with JS
+    disabled and with reduced motion, that no `.reveal` element is left below
+    full opacity.
+15. **`repeat(auto-fit, minmax(310px, 1fr))` overflows below 310px.** The
+    minimum is a hard floor, so on a 320px phone the track is wider than its
+    container and the whole page scrolls sideways - with the fixed header and
+    the backdrop dragged along with it. Always
+    `minmax(min(310px, 100%), 1fr)`.
+16. **`scroll-padding-top` and `scroll-margin-top` stack.** Setting both (on
+    `html` and on `.section`) parked every anchor jump two header-heights down
+    the page, far enough that the scrollspy's "what am I reading" line no longer
+    covered the section it had just scrolled to - so the nav highlighted the
+    *previous* section after every click. Keep exactly one anchor offset, and
+    keep the scrollspy line below it.
+17. **One pseudo-element, one job.** The timeline dot was `.timeline__item::before`
+    and the cursor-tracked card border was `.card--glow::before`; the same
+    elements carry both classes, so the dot silently disappeared on exactly
+    those entries. When two independent decorations can land on one element,
+    give them `::before` and `::after`.
+18. **`scroll-behavior: smooth` makes scripted scrolling asynchronous.** Any
+    measurement taken straight after `scrollTo()` reads a position in transit -
+    which is why `check_view.py` scrolls with `behavior: 'instant'` everywhere.
+    Mind this in any future automation against `/`.
 
 ---
 
@@ -420,8 +430,8 @@ Numbering is stable: code comments reference these by number.
 - [ ] Page split mid-section → 12mm margins repeat correctly (padding compensation).
 - [ ] `/print.html` sheet count == `cv.pdf` page count, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
-- [ ] Toolbar: page prev/next + page box, zoom -/+ and menu, print, download - all working, nothing disabled on first paint.
-- [ ] `python3 scripts/check_view.py` all green (served `_site`). It covers the three stages: **cv.pdf** (section labels, awards and every CV url present as a real link annotation, `i / N` on every page), **/print.html** (no content dropped vs `resume.js`, nothing clipped outside the sheets, no overfilled pages, no orphaned titles - trap B4.9 is invisible to DOM counting alone), **/** on Chromium + WebKit (every PDF page gets a page view and renders once scrolled to, sheet fits width and keeps A4 proportions, no horizontal scroll, canvas never upscaled, text layer selectable, link count matches the PDF and every link is target=_blank, toolbar controls work, no-JS fallback readable). Screenshots land in `test-artifacts/`.
-- [ ] No `@media` block in `resume.css` (trap B4.1) - `viewer.css` is exempt.
-- [ ] No px in `resume.css` (px belongs to `viewer.css` and the boot script), no inline styles, no spacer `<br>`.
-- [ ] After a `pdfjs-dist` upgrade: viewer boots, links clickable, toolbar intact (traps B4.10-B4.13).
+- [ ] Web resume: nav, theme toggle and the PDF link all work; the page is complete with JavaScript disabled.
+- [ ] `python3 scripts/check_view.py` all green (served `_site`). It covers: **cv.pdf** (section labels, awards and every CV url present as a real link annotation, `i / N` on every page), **/print.html** (no content dropped vs `resume.js`, nothing clipped outside the sheets, no overfilled pages, no orphaned titles - trap B4.9 is invisible to DOM counting alone), and **/** on Chromium + WebKit across six viewports (one rendered block per record in every section, no horizontal overflow, hero clears the fixed header, every external link target=_blank, the PDF and the HTML copy both linked, nothing left invisible by the reveal animation, nav click marks the right section and lands below the header, theme toggle repaints and persists) plus reduced-motion and JavaScript-disabled runs. Screenshots land in `test-artifacts/`.
+- [ ] No `@media` block in `resume.css` (trap B4.1) - `site.css` is exempt.
+- [ ] No px in `resume.css` (px belongs to `site.css` and the boot script), no inline styles, no spacer `<br>`.
+- [ ] After a `pagedjs` upgrade: sheet count unchanged, page numbers stamped, `check-pdf.mjs` green.

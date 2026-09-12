@@ -1,0 +1,23 @@
+---
+/* Section shell: the numbered heading, the rule that runs to the edge, and a
+   slot for the content. The `id` is the scrollspy's anchor - it has to match
+   the one in src/lib/sections.ts, which is why the whole SectionMeta is passed
+   in rather than the pieces. */
+import type { SectionMeta } from "../../lib/sections";
+
+interface Props {
+  meta: SectionMeta;
+}
+
+const { meta } = Astro.props;
+---
+<section class="section" id={meta.id} aria-labelledby={`${meta.id}-title`}>
+  <div class="container">
+    <div class="section__head reveal">
+      <span class="section__index" aria-hidden="true">{meta.index}</span>
+      <h2 class="section__title" id={`${meta.id}-title`}>{meta.title}</h2>
+      <span class="section__rule" aria-hidden="true"></span>
+    </div>
+    <slot />
+  </div>
+</section>

@@ -1,69 +1,82 @@
 # CV - ndanhkhoi.github.io
 
-Personal CV as **print-first A4 HTML**. The browser never re-typesets it: the
-build paginates the CV once, prints it to `cv.pdf`, and the site renders that PDF.
-What you see on the page is the file you download - the same bytes.
+One CV, two renderings, one source of truth.
 
-- **SSG**: [Eleventy](https://www.11ty.dev/) - static HTML, content is server-rendered
+- **`/`** - a modern, responsive, animated web resume. Server-rendered HTML with
+  one small progressive-enhancement script; no client framework.
+- **`/cv.pdf`** - the A4 document, paginated and printed at build time. Every
+  "Download CV" button just opens it in a new tab.
+
+Both come from `src/data/resume.js`. Edit that file and both change.
+
+- **SSG**: [Astro](https://astro.build/) - static output, zero JS by default
 - **Pagination**: [Paged.js](https://pagedjs.org/) - at build time only, on `/print.html`
-- **Viewer**: [PDF.js](https://mozilla.github.io/pdf.js/) `PDFViewer` components - toolbar, zoom, selectable text, clickable links
+- **PDF**: headless Chromium (puppeteer) prints `/print.html` to `cv.pdf`
 - **Deploy**: GitHub Actions build → `gh-pages` branch → GitHub Pages
 
 ## Pipeline
 
 ```text
-resume.js + cv-document.njk
-   → /print.html   paged.js splits it into A4 sheets and stamps page numbers
-   → /cv.pdf       puppeteer prints that DOM
-   → /             pdf.js renders cv.pdf - this is the site
+src/data/resume.js
+   ├→ /             the web resume (Astro components + src/styles/site.css)
+   └→ /print.html   paged.js splits the A4 document into sheets, stamps page numbers
+        → /cv.pdf   puppeteer prints that DOM; check-pdf.mjs gates the deploy on it
 ```
 
 ## Structure
 
 | File | Role |
 |---|---|
-| `src/_data/resume.js` | **All CV data** - edit your info here |
-| `src/_includes/cv-document.njk` | The CV markup, shared by both pages |
-| `src/print.njk` | `/print.html`: pagination source + page numbers, also the no-JS fallback |
-| `src/index.njk`, `src/js/viewer.js` | `/`: the pdf.js viewer |
-| `src/css/resume.css` | Document styles following the A4 view-print spec |
-| `src/css/viewer.css` | Viewer chrome (screen only) |
+| `src/data/resume.js` | **All CV data** - edit your info here |
+| `src/data/resume-types.d.ts` | Its shape, so `astro check` catches a bad edit |
+| `src/pages/index.astro` | `/`: the web resume |
+| `src/pages/print.astro` | `/print.html`: pagination source + page numbers, also the plain-HTML copy |
+| `src/components/web/*` | Web resume components |
+| `src/components/print/*` | The A4 document |
+| `src/styles/site.css` | Web resume styles (themes, motion) - loaded only by `/` |
+| `src/styles/resume.css` | A4 document styles, following the print spec |
+| `src/scripts/site.ts` | Theme, scrollspy, reading progress, reveal-on-scroll |
 | `docs/A4_PRINT_VIEW_SPEC.md` | The single spec: A4 design + build pipeline + traps |
+
+`public/` is generated (`scripts/prepare-assets.mjs`) and gitignored.
 
 ## Updating the CV
 
-1. Edit `src/_data/resume.js` (a section left empty self-hides from the page).
+1. Edit `src/data/resume.js` (a section left empty self-hides from both renderings).
 2. Commit + push to `main` → Actions builds and deploys automatically.
 
 ## Run locally
 
 ```bash
 npm install
-npm run dev     # http://localhost:8080 - reprints cv.pdf on every change
-npm run build   # one-off: _site/ + _site/cv.pdf
+npm run dev     # http://localhost:4321
+npm run build   # _site/ + _site/cv.pdf
+npm run check   # astro check (types)
 ```
 
-`build` always produces the PDF, because the homepage renders it - HTML without
-a matching `cv.pdf` is a site with nothing to show.
+`npm run dev` serves the last built `cv.pdf`; run `npm run build` once so the
+download link has a file to open.
 
 ## Checks
 
 ```bash
 node scripts/check-pdf.mjs                       # does cv.pdf still say everything resume.js says?
 python3 -m http.server 4173 --directory _site    # then, in another terminal:
-npm run check:view                               # pagination + viewer, Chromium & WebKit
+npm run check:view                               # web resume + pagination, Chromium & WebKit
 ```
 
 `check-pdf.mjs` is the gate the deploy workflow runs: a build that paginated a
 section away still produces a valid PDF, and page count alone would not notice.
-`check:view` needs `pip install playwright && playwright install chromium webkit`.
+`check:view` needs `pip install playwright && playwright install chromium webkit`;
+it checks the web resume across six viewports on two engines (content complete,
+no horizontal overflow, links open in a new tab, nav and theme behave), the
+pagination traps on `/print.html`, and the page with reduced motion and with
+JavaScript switched off entirely.
 
-## Print / Download PDF
+## Accessibility and no-JS
 
-The toolbar has page navigation, zoom, **print** and **download** on the right.
-Print sends the real `cv.pdf` to the print dialog (A4, 100% scale, header/footer
-off). Printed page numbers match the screen exactly, because the screen is
-showing the PDF.
-
-Without JavaScript the homepage still carries the full CV, and `/print.html`
-serves it as plain paginated HTML.
+The web resume is complete HTML before any script runs: the reveal animation's
+start state is opt-in from the document, so a blocked or broken script leaves
+every word on screen rather than hiding the CV. `prefers-reduced-motion` turns
+the page static, and `/print.html` remains a plain, fully selectable copy of the
+A4 document.

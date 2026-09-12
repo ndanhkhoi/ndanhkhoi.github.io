@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
-"""Layout/visual check for the CV site.
+"""Layout/behaviour check for the CV site.
 
-The site is built in two stages and this script checks both, in the order the
-build produces them (docs/A4_PRINT_VIEW_SPEC.md):
+One data file (src/data/resume.js) is rendered three ways, and this script
+checks all three in the order the build produces them
+(docs/A4_PRINT_VIEW_SPEC.md):
 
-1. cv.pdf       - the artifact that ships. Printed from /print.html, it is what
-                  visitors read and download, so its own content is asserted
-                  directly: page count, section labels, awards, stamped page
-                  numbers, link annotations. Those assertions live in
-                  scripts/check-pdf.mjs, which the deploy workflow also runs.
+1. cv.pdf       - the downloadable artifact. Printed from /print.html, so its
+                  own content is asserted directly: page count, section labels,
+                  awards, stamped page numbers, link annotations. Those
+                  assertions live in scripts/check-pdf.mjs, which the deploy
+                  workflow also runs.
 2. /print.html  - the page paged.js paginates. Pagination is the only place
-                  content can still be silently dropped or clipped, so the
-                  trap checks live here (spec Part B). Chromium only: it is the
+                  content can still be silently dropped or clipped, so the trap
+                  checks live here (spec Part B). Chromium only: it is the
                   engine that prints cv.pdf.
-3. /            - the pdf.js viewer. It renders cv.pdf, so it cannot disagree
-                  with the PDF about layout; what it can get wrong is fitting
-                  the sheet to the screen, the text layer and the links. Run on
-                  Chromium and WebKit, since this part is the visitor's browser.
+3. /            - the web resume. Server-rendered HTML plus one progressive
+                  enhancement script. What can break here is a section going
+                  missing, the page overflowing sideways on a phone, a link
+                  losing target="_blank", or the reveal animation leaving
+                  content invisible. Run on Chromium and WebKit, since this
+                  part is the visitor's browser - and once more with JavaScript
+                  off, because the CV must be readable without it.
 
 Usage:
     npm run build                                   # html + cv.pdf
@@ -37,7 +41,6 @@ from playwright.sync_api import sync_playwright
 BASE_URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:4173"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ART = ROOT / "test-artifacts"
-A4_RATIO = 297 / 210
 
 failures = []
 
@@ -52,7 +55,8 @@ def expected_from_resume_js():
     """Expected rendered counts, labels and URLs, straight from the CV data.
 
     Guards against pagination silently DROPPING trailing sections at a page
-    boundary (the "Honors & Awards cut off" class of bug)."""
+    boundary (the "Honors & Awards cut off" class of bug), and against the web
+    resume quietly rendering fewer entries than the data holds."""
     return json.loads(subprocess.check_output(
         ["node", str(ROOT / "scripts/check-pdf.mjs"), "--expect"], text=True))
 
@@ -73,7 +77,7 @@ def check_pdf():
     """Delegated to scripts/check-pdf.mjs - the same assertions the deploy
     workflow gates on, so CI and this suite can never disagree about what
     cv.pdf is supposed to contain."""
-    print("\n=== cv.pdf (the file the site serves) ===")
+    print("\n=== cv.pdf (the file the site links) ===")
     out = subprocess.run(["node", str(ROOT / "scripts/check-pdf.mjs"), "--json"],
                          capture_output=True, text=True)
     if not out.stdout.strip():
@@ -169,247 +173,253 @@ def check_print_page(browser, pdf):
     ctx.close()
 
 
-# ------------------------------------------------------------- 3. the viewer
+# --------------------------------------------------------- 3. the web resume
 
-VIEWER_METRICS_JS = """
-() => {
-  const c = document.getElementById('viewerContainer');
-  const pages = [...document.querySelectorAll('.pdfViewer .page')];
-  const rects = pages.map(el => {
-    const r = el.getBoundingClientRect();
-    return { left: +r.left.toFixed(1), right: +r.right.toFixed(1),
-             width: +r.width.toFixed(1), height: +r.height.toFixed(1) };
-  });
-  const canvases = [...document.querySelectorAll('.pdfViewer .page canvas')];
+# One selector per section, so a section that silently rendered nothing is a
+# failure with a name rather than a smaller total.
+SECTION_SELECTORS = {
+    "experience": "#experience .timeline__item",
+    "projects": "#projects .projects > article",
+    "skills": "#skills .skills > article",
+    "writing": "#writing .projects > article",
+    "awards": "#awards .award",
+    "education": "#education .timeline__item",
+}
+
+WEB_METRICS_JS = """
+(selectors) => {
+  const de = document.documentElement;
+  const counts = {};
+  for (const [key, sel] of Object.entries(selectors)) counts[key] = document.querySelectorAll(sel).length;
+
+  const navLinks = [...document.querySelectorAll('[data-nav-for]')];
+
   return {
-    ready: document.documentElement.dataset.pvReady,
-    clientWidth: document.documentElement.clientWidth,
-    containerWidth: c ? c.clientWidth : null,
-    containerScrollWidth: c ? c.scrollWidth : null,
-    horizOverflow: c ? c.scrollWidth > c.clientWidth + 1 : true,
-    pageCount: pages.length,
-    canvasCount: canvases.length,
-    pageRects: rects,
-    /* pdf.js sizes the backing store itself; if it ever renders one smaller
-       than its CSS box the page is an upscaled blur - the whole document on a
-       phone. */
-    canvasUnderSampled: canvases
-      .map((cv, i) => cv.width < Math.floor(cv.getBoundingClientRect().width) - 1
-        ? `${i + 1}: ${cv.width}px backing for ${Math.round(cv.getBoundingClientRect().width)}px box` : null)
-      .filter(Boolean),
-    textSpans: document.querySelectorAll('.textLayer span').length,
-    textSample: [...document.querySelectorAll('.textLayer span')].slice(0, 3).map(s => s.textContent),
-    /* The annotation layer is pdf.js's own; these are the CV's URLs, and the
-       project requires every one of them to open in a new tab. */
-    linkCount: document.querySelectorAll('.annotationLayer a').length,
-    linksNotBlank: [...document.querySelectorAll('.annotationLayer a')]
-      .filter(a => a.target !== '_blank' || !/noopener/.test(a.rel)).map(a => a.href),
-    toolbar: {
-      page: document.getElementById('pageNumber') ? document.getElementById('pageNumber').value : null,
-      total: document.getElementById('numPages') ? document.getElementById('numPages').textContent : null,
-      zoom: document.getElementById('zoomSelect') ? document.getElementById('zoomSelect').value : null,
-      downloadHref: document.getElementById('download')
-        ? document.getElementById('download').getAttribute('href') : null,
-      downloadName: document.getElementById('download')
-        ? document.getElementById('download').getAttribute('download') : null,
-      hasPrint: !!document.getElementById('print'),
-      visible: (() => {
-        const t = document.querySelector('.pv-toolbar');
-        if (!t) return false;
-        const r = t.getBoundingClientRect();
-        return r.top >= -1 && r.width > 0 && r.height > 0;
-      })(),
-    },
-    statusGone: !document.getElementById('pv-status'),
+    counts,
+    clientWidth: de.clientWidth,
+    scrollWidth: de.scrollWidth,
+    /* A page that scrolls sideways on a phone reads as broken before a word of
+       it is read. */
+    horizOverflow: de.scrollWidth > de.clientWidth + 1,
+    /* Which elements actually stick out, so a failure is debuggable. */
+    overflowing: [...document.querySelectorAll('body *')].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && (r.right > de.clientWidth + 1 || r.left < -1);
+    }).slice(0, 6).map(el => el.className + ' @' + Math.round(el.getBoundingClientRect().right)),
+    theme: de.dataset.theme || null,
+    animOwned: de.dataset.animReady === '1',
+    /* Nothing may be left in the reveal start state once it has been scrolled
+       past: that is the one failure mode of the animation that hides the CV. */
+    hiddenReveals: [...document.querySelectorAll('.reveal')]
+      .filter(el => parseFloat(getComputedStyle(el).opacity) < 0.99)
+      .map(el => el.className.replace('reveal', '').trim().slice(0, 40)),
+    revealCount: document.querySelectorAll('.reveal').length,
+    navTargets: navLinks.map(a => a.dataset.navFor),
+    navResolves: navLinks.every(a => document.getElementById(a.dataset.navFor)),
+    activeNav: (document.querySelector('[data-nav-for][aria-current="true"]') || {}).dataset,
+    /* Every off-site link opens in a new tab - a project-wide rule that also
+       holds inside cv.pdf (checked there as link annotations). */
+    externalLinks: [...document.querySelectorAll('a[href^="http"]')].map(a => a.href),
+    linksNotBlank: [...document.querySelectorAll('a[href^="http"]')]
+      .filter(a => a.target !== '_blank' || !/noopener/.test(a.rel))
+      .map(a => a.href),
+    pdfLinks: [...document.querySelectorAll('a[href$="cv.pdf"]')].map(a => ({
+      href: a.getAttribute('href'), target: a.target,
+    })),
+    printLink: !!document.querySelector('a[href="/print.html"]'),
+    headerStuck: (document.getElementById('site-header') || {}).dataset,
+    progress: (() => {
+      const el = document.getElementById('progress');
+      return el ? getComputedStyle(el).getPropertyValue('--progress').trim() : null;
+    })(),
+    /* The header is fixed; if the first heading sits under it the page opens
+       on a cropped title. */
+    heroClearsHeader: (() => {
+      const h = document.querySelector('.hero__name');
+      const bar = document.getElementById('site-header');
+      return h && bar ? h.getBoundingClientRect().top >= bar.getBoundingClientRect().bottom : false;
+    })(),
+    text: document.body.innerText,
   };
 }
 """
 
 
-def viewer_page(ctx, errors):
+# The page sets scroll-behavior: smooth, so a plain scrollTo() animates and
+# every measurement taken straight after it reads a position in transit. Tests
+# always scroll instantly.
+SCROLL_TO_JS = "(y) => scrollTo({ top: y, behavior: 'instant' })"
+
+
+def scroll_through(page):
+    """Walk the page to the bottom so every reveal observer has fired, and wait
+    out the staggered transitions before anything is measured."""
+    page.evaluate("""async () => {
+      const step = innerHeight * 0.8;
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        scrollTo({ top: y, behavior: 'instant' });
+        await new Promise(r => setTimeout(r, 140));
+      }
+      scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+      await new Promise(r => setTimeout(r, 1500));
+    }""")
+
+
+def web_metrics(page):
+    return page.evaluate(WEB_METRICS_JS, SECTION_SELECTORS)
+
+
+def check_web(browser, name, *, device=None, viewport=None):
+    print(f"\n=== / {name} ===")
+    ctx = browser.new_context(**(dict(device) if device else {"viewport": viewport}))
+    errors = []
     page = ctx.new_page()
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector("html[data-pv-ready]", timeout=45000, state="attached")
-    return page
+    page.wait_for_function("() => document.documentElement.dataset.animReady === '1'", timeout=15000)
 
+    m = web_metrics(page)
+    tag = name.lower().replace(" ", "_").replace("/", "")
+    page.screenshot(path=str(ART / f"web_{tag}_hero.png"))
 
-def render_every_page(page, pdf):
-    """PDFViewer paints lazily - only pages near the viewport get a canvas.
-    Scroll the container to the end so the whole document is really rendered
-    before counting canvases, text and links."""
-    page.evaluate(
-        """async (total) => {
-          const c = document.getElementById('viewerContainer');
-          for (let i = 0; i < 60; i++) {
-            if (document.querySelectorAll('.pdfViewer .page canvas').length >= total) break;
-            c.scrollTop = Math.min(c.scrollTop + c.clientHeight * 0.85, c.scrollHeight);
-            await new Promise(r => setTimeout(r, 200));
-          }
-          await new Promise(r => setTimeout(r, 400));
-        }""",
-        pdf["pages"])
+    check("every section rendered one block per record",
+          m["counts"] == EXPECTED["sections"],
+          f"rendered={m['counts']} expected={EXPECTED['sections']}")
+    for award in EXPECTED["awardNames"]:
+        check(f"page shows award '{award[:24]}'", award in m["text"])
+    for label in EXPECTED["labels"]:
+        check(f"page shows section '{label}'", label in m["text"])
+    check("hero clears the fixed header", m["heroClearsHeader"] is True)
+    check("no horizontal overflow", not m["horizOverflow"],
+          f"scrollWidth={m['scrollWidth']} clientWidth={m['clientWidth']} {m['overflowing']}")
+    check("script owns the animations", m["animOwned"] is True)
+    check("nav links all resolve to a section", m["navResolves"] is True, str(m["navTargets"]))
+    check("every external link opens in a new tab", not m["linksNotBlank"], str(m["linksNotBlank"]))
+    check("the CV pdf is linked and opens in a new tab",
+          len(m["pdfLinks"]) >= 1 and all(l["target"] == "_blank" for l in m["pdfLinks"]),
+          str(m["pdfLinks"]))
+    check("the plain-HTML version is linked", m["printLink"] is True)
 
+    # Every URL the CV carries must be reachable from the page too, otherwise
+    # the web rendering quietly drops a link the PDF has.
+    found = {u.rstrip("/") for u in m["externalLinks"]}
+    missing = [u for u in EXPECTED["urls"] + EXPECTED["webLinks"]
+               if u.startswith("http") and u.rstrip("/") not in found]
+    check("every CV url is on the page", not missing, str(missing))
 
-def check_viewer_fit(m, label=""):
-    prefix = f"{label} " if label else ""
-    w = m["pageRects"][0]["width"] if m["pageRects"] else 0
-    check(f"{prefix}no horizontal overflow", not m["horizOverflow"],
-          f"scrollWidth={m['containerScrollWidth']} clientWidth={m['containerWidth']}")
-    check(f"{prefix}sheet never wider than the viewport", w <= m["containerWidth"] + 1,
-          f"page={w} container={m['containerWidth']}")
-    if m["clientWidth"] <= 640:
-        # "auto" resolves to page-width on a narrow screen: the sheet should
-        # claim nearly the whole container, not sit tiny in the middle.
-        check(f"{prefix}sheet fills the width on mobile", w >= m["containerWidth"] * 0.9,
-              f"page={w} container={m['containerWidth']}")
-
-
-def run_viewer(browser, name, pdf, *, device=None, viewport=None):
-    print(f"\n=== {name} ===")
-    ctx = browser.new_context(**(dict(device) if device else {"viewport": viewport}))
-    errors = []
-    page = viewer_page(ctx, errors)
-    render_every_page(page, pdf)
-    m = page.evaluate(VIEWER_METRICS_JS)
-    print("  " + json.dumps({k: v for k, v in m.items() if k != "pageRects"}, indent=2)[:900])
-
-    tag = name.lower().replace(" ", "_")
-    page.screenshot(path=str(ART / f"{tag}_viewport.png"))
-
-    rect = m["pageRects"][0] if m["pageRects"] else None
-    check("viewer reports the pdf's page count", m["ready"] == str(pdf["pages"]),
-          f"ready={m['ready']} pdf={pdf['pages']}")
-    check("every pdf page has a page view", m["pageCount"] == pdf["pages"],
-          f"pages={m['pageCount']} pdf={pdf['pages']}")
-    check("every page renders when scrolled to", m["canvasCount"] == pdf["pages"],
-          f"canvases={m['canvasCount']} pdf={pdf['pages']}")
-    check_viewer_fit(m)
-    check("sheet keeps A4 proportions",
-          rect is not None and abs(rect["height"] / rect["width"] - A4_RATIO) < 0.03,
-          f"ratio={rect and round(rect['height'] / rect['width'], 4)} want≈{round(A4_RATIO, 4)}")
-    check("pages render at full resolution", not m["canvasUnderSampled"],
-          str(m["canvasUnderSampled"]))
-    check("text layer is selectable text", m["textSpans"] > 0, str(m["textSample"]))
-    check("every pdf link is clickable in the viewer",
-          m["linkCount"] == sum(len(p) for p in pdf["links"]),
-          f"viewer={m['linkCount']} pdf={sum(len(p) for p in pdf['links'])}")
-    check("every link opens in a new tab", not m["linksNotBlank"], str(m["linksNotBlank"]))
-    check("toolbar visible", m["toolbar"]["visible"] is True)
-    check("toolbar shows the page count", m["toolbar"]["total"] == f"of {pdf['pages']}",
-          str(m["toolbar"]["total"]))
-    check("toolbar download points at cv.pdf", m["toolbar"]["downloadHref"] == "/cv.pdf"
-          and (m["toolbar"]["downloadName"] or "").endswith("-cv.pdf"),
-          f"href={m['toolbar']['downloadHref']} name={m['toolbar']['downloadName']}")
-    check("toolbar has a print control", m["toolbar"]["hasPrint"] is True)
-    check("loading state removed", m["statusGone"] is True)
+    scroll_through(page)
+    after = web_metrics(page)
+    page.screenshot(path=str(ART / f"web_{tag}_end.png"))
+    check("nothing left invisible by the reveal animation",
+          not after["hiddenReveals"], str(after["hiddenReveals"]))
+    check("the page has reveal targets at all", after["revealCount"] > 0)
+    check("header switches to its scrolled state", after["headerStuck"].get("stuck") == "true",
+          str(after["headerStuck"]))
+    check("reading progress reaches the end", float(after["progress"] or 0) > 0.99,
+          str(after["progress"]))
+    check("no horizontal overflow after scrolling", not after["horizOverflow"],
+          f"scrollWidth={after['scrollWidth']} {after['overflowing']}")
     check("no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
-    return m
 
 
-def check_landscape(browser, engine, pdf):
-    print(f"\n=== {engine} iPhone 14 landscape (rotate after load) ===")
-    ctx = browser.new_context(**browser_devices["iPhone 14"])
-    errors = []
-    page = viewer_page(ctx, errors)
-    vp = page.viewport_size
-    page.set_viewport_size({"width": vp["height"], "height": vp["width"]})
-    page.wait_for_timeout(900)  # resize debounce is 150ms + relayout
-    m = page.evaluate(VIEWER_METRICS_JS)
-    check_viewer_fit(m, f"{engine} landscape")
-    check(f"{engine} landscape keeps every page", m["pageCount"] == pdf["pages"],
-          f"pages={m['pageCount']} pdf={pdf['pages']}")
-    check(f"{engine} landscape re-renders sharp", not m["canvasUnderSampled"],
-          str(m["canvasUnderSampled"]))
-    check(f"{engine} landscape: no JS errors", not errors, "; ".join(errors[:3]))
-    page.screenshot(path=str(ART / f"{engine}_iphone14_landscape.png"))
-    ctx.close()
-
-
-def check_toolbar_controls(browser, pdf):
-    """The toolbar is the part of the viewer this project owns - pdf.js owns
-    everything below it - so its controls are what can actually regress."""
-    print("\n=== toolbar controls (desktop) ===")
+def check_nav_and_theme(browser):
+    """The two pieces of behaviour this project owns on the web page."""
+    print("\n=== / nav + theme (desktop) ===")
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})
     errors = []
-    page = viewer_page(ctx, errors)
+    page = ctx.new_page()
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_function("() => document.documentElement.dataset.animReady === '1'", timeout=15000)
 
-    page.click("#next")
-    page.wait_for_timeout(500)
-    check("next page advances the page box", page.input_value("#pageNumber") == "2",
-          page.input_value("#pageNumber"))
-    page.click("#previous")
-    page.wait_for_timeout(500)
-    check("previous page goes back", page.input_value("#pageNumber") == "1",
-          page.input_value("#pageNumber"))
+    # Clicking a nav link must land in that section AND mark it current: the
+    # anchor offset and the scrollspy line are two numbers that have to agree.
+    for section in ("projects", "awards"):
+        page.click(f'[data-nav-for="{section}"]')
+        page.wait_for_timeout(1200)
+        current = page.evaluate(
+            "() => (document.querySelector('[data-nav-for][aria-current=\"true\"]') || {dataset:{}}).dataset.navFor")
+        check(f"clicking '{section}' marks it as the current section", current == section,
+              f"aria-current={current}")
+        top = page.evaluate(f"() => document.getElementById('{section}').getBoundingClientRect().top")
+        header_h = page.evaluate("() => document.getElementById('site-header').offsetHeight")
+        check(f"clicking '{section}' scrolls it below the header",
+              header_h - 2 <= top <= header_h + 40, f"top={round(top)} header={header_h}")
 
-    page.fill("#pageNumber", str(pdf["pages"]))
-    page.press("#pageNumber", "Enter")
+    page.evaluate(SCROLL_TO_JS, 0)
     page.wait_for_timeout(600)
-    check("typing a page number jumps to it",
-          page.evaluate("document.querySelector('.pdfViewer').parentElement.scrollTop > 0"))
+    check("nothing is current above the first section",
+          page.evaluate("() => !document.querySelector('[data-nav-for][aria-current=\"true\"]')"))
 
-    scale_before = page.evaluate("parseFloat(getComputedStyle(document.querySelector('.pdfViewer .page')).width)")
-    page.click("#zoomIn")
-    page.wait_for_timeout(600)
-    scale_after = page.evaluate("parseFloat(getComputedStyle(document.querySelector('.pdfViewer .page')).width)")
-    check("zoom in enlarges the page", scale_after > scale_before,
-          f"{scale_before} -> {scale_after}")
-    page.click("#zoomOut")
-    page.wait_for_timeout(600)
-    scale_back = page.evaluate("parseFloat(getComputedStyle(document.querySelector('.pdfViewer .page')).width)")
-    check("zoom out shrinks it again", scale_back < scale_after,
-          f"{scale_after} -> {scale_back}")
+    before = page.evaluate("() => getComputedStyle(document.body).backgroundColor")
+    page.click("#theme-toggle")
+    page.wait_for_timeout(400)
+    after = page.evaluate("() => getComputedStyle(document.body).backgroundColor")
+    theme = page.evaluate("() => document.documentElement.dataset.theme")
+    check("theme toggle repaints the page", before != after, f"{before} -> {after}")
+    check("theme toggle records the choice",
+          page.evaluate("() => localStorage.getItem('theme')") == theme, str(theme))
+    page.screenshot(path=str(ART / "web_theme_toggled.png"))
 
-    page.select_option("#zoomSelect", "page-width")
-    page.wait_for_timeout(600)
-    m = page.evaluate(VIEWER_METRICS_JS)
-    check("page-width fills the container",
-          m["pageRects"] and m["pageRects"][0]["width"] >= m["containerWidth"] * 0.9,
-          f"page={m['pageRects'] and m['pageRects'][0]['width']} container={m['containerWidth']}")
-    check("page-width introduces no horizontal scroll", not m["horizOverflow"],
-          f"scrollWidth={m['containerScrollWidth']} clientWidth={m['containerWidth']}")
-
-    check("cv.pdf reachable", page.request.head(BASE_URL + "/cv.pdf").ok)
-    check("toolbar: no JS errors", not errors, "; ".join(errors[:3]))
-    page.screenshot(path=str(ART / "toolbar_desktop.png"))
+    page.reload(wait_until="networkidle")
+    check("the theme choice survives a reload",
+          page.evaluate("() => document.documentElement.dataset.theme") == theme)
+    check("nav/theme: no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
 
 
-def check_no_js_fallback(browser):
-    """No pdf.js (blocked module, no JS at all): the CV must still be readable.
-    The homepage carries the same document in <noscript> and links /print.html."""
-    print("\n=== no-JS fallback ===")
-    html = browser.new_context().request.get(BASE_URL).text()
-    for name in EXPECTED["awardNames"]:
-        check(f"homepage html contains award '{name[:24]}'", name in html)
-    check("homepage html links the print page", "/print.html" in html)
+def check_reduced_motion(browser):
+    """With reduced motion the page must be complete and static, not animated
+    fast."""
+    print("\n=== / prefers-reduced-motion ===")
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900},
+                              reduced_motion="reduce")
+    page = ctx.new_page()
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_timeout(500)
+    m = web_metrics(page)
+    check("reduced motion: every section still rendered", m["counts"] == EXPECTED["sections"],
+          str(m["counts"]))
+    check("reduced motion: nothing hidden by the reveal start state",
+          not m["hiddenReveals"], str(m["hiddenReveals"]))
+    ctx.close()
 
-    ctx = browser.new_context(java_script_enabled=False, **browser_devices["iPhone 14"])
+
+def check_no_js(browser):
+    """No JavaScript at all: the CV must still be complete, visible and
+    scrollable. The reveal animation's start state is opt-in from the document
+    for exactly this reason - see src/styles/site.css."""
+    print("\n=== / with JavaScript disabled ===")
+    html = browser.new_context().request.get(BASE_URL).text()
+    for award in EXPECTED["awardNames"]:
+        check(f"server-rendered html contains award '{award[:24]}'", award in html)
+    check("server-rendered html links cv.pdf", "/cv.pdf" in html)
+    check("server-rendered html links the print page", "/print.html" in html)
+
+    ctx = browser.new_context(java_script_enabled=False, **BROWSER_DEVICES["iPhone 14"])
     page = ctx.new_page()
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=60000)
-    check("no-JS: CV document rendered", page.locator(".cv-name").count() >= 1)
-    check("no-JS: spinner hidden", not page.is_visible("#pv-status"))
-    check("no-JS: viewer chrome hidden", not page.is_visible(".pv-toolbar"))
-    # viewer.css pins html/body to the viewport (height:100%, overflow:hidden) so
-    # the sheets scroll inside #viewerContainer. With no JS the CV itself is the
-    # document: if that lock survives, the reader gets one screenful and no way
-    # to reach the rest of the CV.
+    m = web_metrics(page)
+    check("no-JS: every section rendered", m["counts"] == EXPECTED["sections"], str(m["counts"]))
+    check("no-JS: nothing hidden by the reveal start state",
+          not m["hiddenReveals"], str(m["hiddenReveals"]))
+    check("no-JS: no horizontal overflow", not m["horizOverflow"],
+          f"scrollWidth={m['scrollWidth']} {m['overflowing']}")
     scroll = page.evaluate(
         """() => {
           const de = document.documentElement;
-          window.scrollTo(0, 1e6);
+          window.scrollTo({ top: 1e6, behavior: 'instant' });
           return {reach: de.scrollHeight - de.clientHeight, y: window.scrollY};
         }""")
     check("no-JS: the whole CV is reachable by scrolling",
           scroll["reach"] > 0 and scroll["y"] > 0, str(scroll))
-    page.screenshot(path=str(ART / "iphone14_nojs.png"), full_page=True)
+    page.screenshot(path=str(ART / "web_nojs_full.png"), full_page=True)
     ctx.close()
 
 
-browser_devices = {}
+BROWSER_DEVICES = {}
 
 
 def main():
@@ -418,7 +428,7 @@ def main():
     check_pdf()
 
     with sync_playwright() as p:
-        browser_devices.update({k: p.devices[k] for k in
+        BROWSER_DEVICES.update({k: p.devices[k] for k in
                                 ("iPhone 14 Pro Max", "iPhone 14", "Pixel 7", "iPhone SE")})
 
         # Chromium prints cv.pdf, so it is the engine whose pagination matters.
@@ -426,19 +436,19 @@ def main():
         check_print_page(chromium, pdf)
         chromium.close()
 
-        # The viewer runs in the visitor's browser: check both engines.
+        # The web resume runs in the visitor's browser: check both engines.
         for engine in ("chromium", "webkit"):
             browser = getattr(p, engine).launch()
             for name in ("iPhone 14 Pro Max", "iPhone 14", "Pixel 7", "iPhone SE"):
-                run_viewer(browser, f"{engine} {name}", pdf, device=browser_devices[name])
-            run_viewer(browser, f"{engine} Desktop", pdf,
-                       viewport={"width": 1280, "height": 900})
-            check_landscape(browser, engine, pdf)
+                check_web(browser, f"{engine} {name}", device=BROWSER_DEVICES[name])
+            check_web(browser, f"{engine} Desktop", viewport={"width": 1280, "height": 900})
+            check_web(browser, f"{engine} Tablet", viewport={"width": 834, "height": 1112})
             browser.close()
 
         chromium = p.chromium.launch()
-        check_toolbar_controls(chromium, pdf)
-        check_no_js_fallback(chromium)
+        check_nav_and_theme(chromium)
+        check_reduced_motion(chromium)
+        check_no_js(chromium)
         chromium.close()
 
     print("\n" + "=" * 60)

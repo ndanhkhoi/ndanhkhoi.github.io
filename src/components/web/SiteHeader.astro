@@ -1,0 +1,56 @@
+---
+/* Fixed header: identity, section nav, theme toggle, and the one action that
+   matters - the PDF. Below 900px the nav steps aside (the page is short enough
+   to scroll) and only the brand and the actions remain.
+
+   The reading-progress bar and the aria-current state on the links are set by
+   src/scripts/site.ts; with no JS the header is still a working set of anchor
+   links, which is the point. */
+import resume from "../../data/resume.js";
+import { sections } from "../../lib/sections";
+import { titleCase } from "../../lib/text";
+import Icon from "./Icon.astro";
+
+const displayName = titleCase(resume.meta.name);
+const initials = resume.meta.name
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((w) => w[0])
+  .join("");
+---
+<header class="site-header" id="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="#top">
+      <span class="brand__mark" aria-hidden="true">{initials}</span>
+      <span class="brand__text">{displayName}</span>
+    </a>
+
+    <nav class="site-nav" aria-label="Sections">
+      <ul class="site-nav__list">
+        {sections.map((s) => (
+          <li><a class="site-nav__link" href={`#${s.id}`} data-nav-for={s.id}>{s.nav}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <button
+        type="button"
+        class="btn btn--icon theme-toggle"
+        id="theme-toggle"
+        aria-label="Switch colour theme"
+      >
+        <Icon name="moon" class="theme-toggle__icon theme-toggle__icon--moon" />
+        <Icon name="sun" class="theme-toggle__icon theme-toggle__icon--sun" />
+      </button>
+
+      <a class="btn btn--primary" id="open-pdf" href="/cv.pdf" target="_blank" rel="noopener">
+        <Icon name="file" />
+        <span>CV (PDF)</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+</header>

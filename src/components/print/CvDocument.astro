@@ -1,0 +1,181 @@
+---
+/* The A4 CV document - the one that gets printed.
+ *
+ * /print.html renders this, paged.js splits it into sheets, and
+ * scripts/build-pdf.mjs prints that DOM to _site/cv.pdf. The web resume (/)
+ * does NOT use this component: it renders the same data with its own layout,
+ * and shows this document as the PDF it links to.
+ *
+ * Every section follows the same shape: the title and the first block of
+ * content sit together inside `.section-start` so paged.js can never leave a
+ * heading stranded at the foot of a page (spec A6). Keep that pairing when
+ * adding a section.
+ */
+import resume from "../../data/resume.js";
+import { autolink } from "../../lib/autolink";
+import ContactIcon from "../ContactIcon.astro";
+import CvEntry from "./CvEntry.astro";
+
+const { meta, labels } = resume;
+const additional = resume.languages.length > 0 || resume.interests.length > 0;
+---
+<div class="page">
+
+  <header class="cv-header section--atomic">
+    <h1 class="cv-name">{meta.name}</h1>
+    <p class="cv-job-title">{meta.jobTitle}</p>
+    {meta.contacts.length > 0 && (
+      <ul class="cv-contact">
+        {meta.contacts.map((c) => (
+          <li><ContactIcon name={c.icon} class="cv-contact__icon" />{c.href
+            ? <a href={c.href} target="_blank" rel="noopener">{c.text}</a>
+            : c.text}</li>
+        ))}
+      </ul>
+    )}
+  </header>
+
+  {resume.summary && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.summary}</h2>
+        <p class="cv-summary" set:html={autolink(resume.summary)} />
+      </div>
+    </section>
+  )}
+
+  {resume.education.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.education}</h2>
+        <CvEntry
+          title={resume.education[0].degree || resume.education[0].school}
+          sub={resume.education[0].degree ? resume.education[0].school : undefined}
+          period={resume.education[0].period}
+          desc={resume.education[0].detail}
+        />
+      </div>
+      {resume.education.slice(1).map((ed) => (
+        <CvEntry
+          title={ed.degree || ed.school}
+          sub={ed.degree ? ed.school : undefined}
+          period={ed.period}
+          desc={ed.detail}
+        />
+      ))}
+    </section>
+  )}
+
+  {resume.experience.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.experience}</h2>
+        <CvEntry
+          title={resume.experience[0].position}
+          sub={[resume.experience[0].company, resume.experience[0].location].filter(Boolean).join(" · ")}
+          period={resume.experience[0].period}
+          highlights={resume.experience[0].highlights}
+        />
+      </div>
+      {resume.experience.slice(1).map((e) => (
+        <CvEntry
+          title={e.position}
+          sub={[e.company, e.location].filter(Boolean).join(" · ")}
+          period={e.period}
+          highlights={e.highlights}
+        />
+      ))}
+    </section>
+  )}
+
+  {resume.projects.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.projects}</h2>
+        <CvEntry
+          title={resume.projects[0].name}
+          sub={resume.projects[0].role}
+          period={resume.projects[0].period}
+          link={resume.projects[0].link}
+          highlights={resume.projects[0].highlights}
+        />
+      </div>
+      {resume.projects.slice(1).map((p) => (
+        <CvEntry
+          title={p.name}
+          sub={p.role}
+          period={p.period}
+          link={p.link}
+          highlights={p.highlights}
+        />
+      ))}
+    </section>
+  )}
+
+  {resume.writing.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.writing}</h2>
+        <CvEntry bare title={resume.writing[0].title} highlights={resume.writing[0].highlights} />
+      </div>
+      {resume.writing.slice(1).map((w) => (
+        <CvEntry bare title={w.title} highlights={w.highlights} />
+      ))}
+    </section>
+  )}
+
+  {resume.awards.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.awards}</h2>
+        <ul class="cert-list">
+          {resume.awards.map((c) => (
+            <li class="cert-item">
+              <span class="cert-name">{c.name}</span>
+              {c.extra && <span class="cert-extra text-meta">{c.extra}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  {resume.skills.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.skills}</h2>
+        <div class="skills-grid">
+          {resume.skills.map((s) => (
+            <div class="skill-group">
+              <p class="skill-group__label">{s.label}</p>
+              <p class="skill-group__items">{s.items.join(" · ")}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {additional && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.additional}</h2>
+        <div class="meta-grid">
+          {resume.languages.length > 0 && (
+            <div class="meta-block">
+              <p class="meta-block__label">{labels.languages}</p>
+              {resume.languages.map((l) => <p>{l.note ? `${l.name} - ${l.note}` : l.name}</p>)}
+            </div>
+          )}
+          {resume.interests.length > 0 && (
+            <div class="meta-block">
+              <p class="meta-block__label">{labels.interests}</p>
+              <p>{resume.interests.join(", ")}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )}
+
+</div>
