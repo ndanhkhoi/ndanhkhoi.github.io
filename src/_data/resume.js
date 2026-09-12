@@ -1,20 +1,22 @@
 /**
- * TOÀN BỘ dữ liệu CV — sửa thông tin cá nhân tại file này, không cần đụng layout.
+ * TOÀN BỘ dữ liệu CV - sửa thông tin cá nhân tại file này, không cần đụng layout.
  *
  * Quy ước:
  * - Section nào bỏ trống ([] hoặc "") sẽ tự ẩn khỏi trang CV.
- * - `labels` = tiêu đề các section — đổi ngôn ngữ CV tại đây.
+ * - `labels` = tiêu đề các section - đổi ngôn ngữ CV tại đây.
+ * - `meta.contacts`: icon thuộc {location, phone, mail, globe} (bỏ trống = không icon);
+ *   `href` tùy chọn để làm link (tel:/mailto:/https:).
  * - Nội dung chuyển nguyên văn từ CV gốc (Nguyen-Duc-Anh-Khoi-CV 2.pdf).
  */
 module.exports = {
   meta: {
-    name: "Nguyen Duc Anh Khoi",
+    name: "NGUYEN DUC ANH KHOI",
     jobTitle: "Senior Java Backend Developer",
     contacts: [
-      "Ho Chi Minh City, Viet Nam",
-      "0776524327",
-      "khoinda.611@gmail.com",
-      "https://khoinda.io.vn/"
+      { icon: "location", text: "Ho Chi Minh City, Viet Nam" },
+      { icon: "phone", text: "0776524327", href: "tel:0776524327" },
+      { icon: "mail", text: "khoinda.611@gmail.com", href: "mailto:khoinda.611@gmail.com" },
+      { icon: "globe", text: "https://khoinda.io.vn/", href: "https://khoinda.io.vn/" }
     ]
   },
 

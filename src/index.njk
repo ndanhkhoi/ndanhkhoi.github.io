@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{{ resume.meta.name }} — CV">
-  <title>{{ resume.meta.name }} — CV</title>
+  <meta name="description" content="{{ resume.meta.name }} - CV">
+  <title>{{ resume.meta.name }} - CV</title>
   <link rel="stylesheet" href="/fonts/inter.css">
   <link rel="stylesheet" href="/css/resume.css">
 </head>
@@ -16,9 +16,21 @@
     <p class="cv-job-title">{{ resume.meta.jobTitle }}</p>
     {% if resume.meta.contacts.length %}
     <ul class="cv-contact">
-      {%- for c in resume.meta.contacts -%}
-      <li>{{ c }}</li>
-      {%- endfor -%}
+      {% for c in resume.meta.contacts %}
+      {% set text = c.text or c %}
+      <li>
+        {%- if c.icon == "location" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        {%- elif c.icon == "phone" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        {%- elif c.icon == "mail" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        {%- elif c.icon == "globe" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        {%- endif -%}
+        {%- if c.href -%}<a href="{{ c.href }}" target="_blank" rel="noopener">{{ text }}</a>{%- else -%}{{ text }}{%- endif -%}
+      </li>
+      {% endfor %}
     </ul>
     {% endif %}
   </header>
@@ -26,7 +38,7 @@
   {% if resume.summary %}
   <section class="cv-section">
     <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
-    <p class="cv-summary">{{ resume.summary }}</p>
+    <p class="cv-summary">{{ resume.summary | autolink | safe }}</p>
   </section>
   {% endif %}
 
@@ -42,7 +54,7 @@
         </div>
         <p class="entry-period text-meta">{{ ed.period }}</p>
       </div>
-      {% if ed.detail %}<p class="entry-desc">{{ ed.detail }}</p>{% endif %}
+      {% if ed.detail %}<p class="entry-desc">{{ ed.detail | autolink | safe }}</p>{% endif %}
     </article>
     {% endfor %}
   </section>
@@ -63,7 +75,7 @@
       {% if e.highlights.length %}
       <ul class="entry-highlights">
         {%- for h in e.highlights -%}
-        <li>{{ h }}</li>
+        <li>{{ h | autolink | safe }}</li>
         {%- endfor -%}
       </ul>
       {% endif %}
@@ -79,7 +91,7 @@
     <article class="entry">
       <div class="entry-head">
         <div class="entry-heading">
-          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}" target="_blank" rel="noopener">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
           {% if p.role %}<p class="entry-sub">{{ p.role }}</p>{% endif %}
         </div>
         <p class="entry-period text-meta">{{ p.period }}</p>
@@ -87,7 +99,7 @@
       {% if p.highlights.length %}
       <ul class="entry-highlights">
         {%- for h in p.highlights -%}
-        <li>{{ h }}</li>
+        <li>{{ h | autolink | safe }}</li>
         {%- endfor -%}
       </ul>
       {% endif %}
@@ -105,7 +117,7 @@
       {% if w.highlights.length %}
       <ul class="entry-highlights">
         {%- for h in w.highlights -%}
-        <li>{{ h }}</li>
+        <li>{{ h | autolink | safe }}</li>
         {%- endfor -%}
       </ul>
       {% endif %}
@@ -119,7 +131,7 @@
     <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
     <ul class="cert-list">
       {% for c in resume.awards %}
-      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} — {{ c.extra }}{% endif %}</li>
+      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
       {% endfor %}
     </ul>
   </section>
@@ -147,7 +159,7 @@
       <div class="meta-block">
         <p class="meta-block__label">{{ resume.labels.languages }}</p>
         {% for l in resume.languages %}
-        <p>{{ l.name }}{% if l.note %} — {{ l.note }}{% endif %}</p>
+        <p>{{ l.name }}{% if l.note %} - {{ l.note }}{% endif %}</p>
         {% endfor %}
       </div>
       {% endif %}
@@ -168,7 +180,7 @@
 (function () {
   "use strict";
 
-  /* Boot script preview A4 + số trang — chi tiết: docs/QUY_CHUAN_VIEW_IN_A4.md Phần B */
+  /* Boot script preview A4 + số trang - chi tiết: docs/QUY_CHUAN_VIEW_IN_A4.md Phần B */
   var PAGE_PADDING_MM = 12; /* phải khớp padding của .page trong resume.css */
   var CV_PDF_URL = "/cv.pdf"; /* file thật sinh ở build-time (scripts/build-pdf.mjs) */
   var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* tên file khi tải về */
@@ -194,7 +206,7 @@
     + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
     + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
 
-  /* Nút PDF (dropdown: Tải PDF / In PDF) — chỉ hiển thị màn hình, ẩn khi in */
+  /* Nút PDF (dropdown: Tải PDF / In PDF) - chỉ hiển thị màn hình, ẩn khi in */
   var ACTIONS_CSS = ""
     + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999; }"
     + ".pdf-menu__toggle { display: inline-flex; align-items: center; gap: 8px; border: 0;"
@@ -250,7 +262,7 @@
   }
 
   /* Fit-width mobile: co tờ A4 vừa chiều rộng màn hình như viewer PDF thật.
-     CSS zoom — được reset về 1 khi in (xem @media print ở CSS trên). */
+     CSS zoom - được reset về 1 khi in (xem @media print ở CSS trên). */
   var A4_PX = 793.7; /* 210mm @ 96dpi */
   function fitWidth() {
     var target = document.querySelector(".pagedjs_pages") || document.querySelector(".page");
@@ -264,7 +276,7 @@
     fitTimer = setTimeout(fitWidth, 150);
   });
 
-  /* append SAU khi phân trang xong — element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
+  /* append SAU khi phân trang xong - element ngoài body trước đó sẽ bị paged.js cuốn vào nội dung */
   var actionsAdded = false;
   function ensureActions() {
     if (actionsAdded) return;
@@ -298,7 +310,7 @@
     fetch(CV_PDF_URL, { method: "HEAD" }).then(function (r) {
       if (!r.ok) {
         dlItem.remove();
-        console.warn(CV_PDF_URL + " chưa tồn tại — chạy `npm run build:pdf` để có mục Tải PDF.");
+        console.warn(CV_PDF_URL + " chưa tồn tại - chạy `npm run build:pdf` để có mục Tải PDF.");
       }
     }).catch(function () {});
 

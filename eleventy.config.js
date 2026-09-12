@@ -17,10 +17,29 @@ function buildInterCss() {
     .join("\n");
 }
 
+/* Autolink: escape HTML rồi bọc URL (http/https) thành <a> - dùng | autolink | safe
+   trong template. Giúp link trong nội dung click được ở cả HTML view và PDF. */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "src/css": "css" });
 
-  /* File PDF sinh bởi scripts/build-pdf.mjs — passthrough để không mất khi rebuild */
+  eleventyConfig.addFilter("autolink", (value) => {
+    if (!value) return value;
+    return escapeHtml(value).replace(
+      /(https?:\/\/[^\s"'<>]+)/g,
+      (url) => '<a href="' + url + '" target="_blank" rel="noopener">' + url + "</a>"
+    );
+  });
+
+  /* File PDF sinh bởi scripts/build-pdf.mjs - passthrough để không mất khi rebuild */
   eleventyConfig.addPassthroughCopy({ "src/cv.pdf": "cv.pdf" });
 
   eleventyConfig.on("eleventy.after", () => {
