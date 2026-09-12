@@ -55,15 +55,13 @@ module.exports = {
       period: "2023 - Present",
       highlights: [
         "Lead and mentor a team of 5 developers, conducting bi-weekly 1-on-1s that improved team retention to 100% over 2 years",
-        "Led the design and rollout of a Maven Extension that automatically installs a Git commit-msg hook to enforce commit " +
-          "message standards, adopted across 4 microservice teams spanning 4 projects.",
+        "Established team-wide commit conventions and led the design and rollout of a Maven extension that installs a Git " +
+          "commit-msg hook to enforce them, adopted across 4 microservice teams spanning 4 projects",
         "Establish and enforce coding standards, conduct thorough code reviews to maintain high code quality across projects, " +
           "led 500+ code reviews annually, reducing production bugs by 40%",
-        "Established commit conventions and developed a custom Maven extension to enforce commit message standards, ensuring " +
-          "consistent code quality and meaningful version control history across all team projects",
         "Architected and led the implementation of an asynchronous e-invoice integration flow to replace the traditional " +
           "synchronous process, improving system responsiveness and reducing coupling between VNPT HIS and external " +
-          "e-invoicing systems.",
+          "e-invoicing systems",
         "Analyzed requirements, designed solutions, and led the team to upgrade the VNPT HIS system to comply with new " +
           "Ministry of Health regulations on health insurance reimbursement, enabling hospitals to reliably settle tens of " +
           "billions VND in insurance claims each month",
@@ -88,7 +86,7 @@ module.exports = {
           "VNPT Money), processing 1,000+ transactions daily with 99.9% uptime and average response time under 2s",
         "Maintained and developed 50+ new features for VNPT HIS Java platform serving 4,000+ hospitals nationwide, achieving " +
           "99.5% system availability and resolving 200+ production issues with average resolution time of 4 hours",
-        "Designed and implemented a ‘Fee & Health Insurance’ microservice for VNPT Home & Clinic using Java 17, Spring Boot " +
+        "Designed and implemented a 'Fee & Health Insurance' microservice for VNPT Home & Clinic using Java 17, Spring Boot " +
           "microservices architecture, Kafka, Redis, Oracle, React, serving 1,000+ clinics"
       ]
     }
@@ -103,8 +101,7 @@ module.exports = {
       highlights: [
         "A modern personal finance management platform built to explore latest Java and React ecosystem",
         "Stack: Java 21, Spring Boot 3.x, React 18, PostgreSQL, Redis, Docker, GitHub Actions CI/CD",
-        "Implemented JWT authentication, RESTful APIs, responsive UI, and automated deployment pipeline",
-        "Live demo: https://moni.khoinda.vn/"
+        "Implemented JWT authentication, RESTful APIs, responsive UI, and automated deployment pipeline"
       ]
     },
     {
@@ -128,8 +125,7 @@ module.exports = {
         "A lightweight library simplifying Telegram bot development with Spring MVC-style annotations",
         "Built with Java, Spring Boot, and reactive programming paradigms",
         "Provides @BotController and @CommandMapping annotations for intuitive bot development",
-        "Published on JitPack for community use",
-        "Github: https://github.com/ndanhkhoi/simple-telegram-command-bot-spring-boot-starter"
+        "Published on JitPack for community use"
       ]
     }
   ],
