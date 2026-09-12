@@ -37,15 +37,20 @@
 
   {% if resume.summary %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
-    <p class="cv-summary">{{ resume.summary | autolink | safe }}</p>
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
+      <p class="cv-summary">{{ resume.summary | autolink | safe }}</p>
+    </div>
   </section>
   {% endif %}
 
   {% if resume.education.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
     {% for ed in resume.education %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
+    {% endif %}
     <article class="entry">
       <div class="entry-head">
         <div class="entry-heading">
@@ -56,14 +61,18 @@
       </div>
       {% if ed.detail %}<p class="entry-desc">{{ ed.detail | autolink | safe }}</p>{% endif %}
     </article>
+    {% if loop.first %}</div>{% endif %}
     {% endfor %}
   </section>
   {% endif %}
 
   {% if resume.experience.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.experience }}</h2>
     {% for e in resume.experience %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.experience }}</h2>
+    {% endif %}
     <article class="entry">
       <div class="entry-head">
         <div class="entry-heading">
@@ -80,14 +89,18 @@
       </ul>
       {% endif %}
     </article>
+    {% if loop.first %}</div>{% endif %}
     {% endfor %}
   </section>
   {% endif %}
 
   {% if resume.projects.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.projects }}</h2>
     {% for p in resume.projects %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.projects }}</h2>
+    {% endif %}
     <article class="entry">
       <div class="entry-head">
         <div class="entry-heading">
@@ -104,14 +117,18 @@
       </ul>
       {% endif %}
     </article>
+    {% if loop.first %}</div>{% endif %}
     {% endfor %}
   </section>
   {% endif %}
 
   {% if resume.writing.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.writing }}</h2>
     {% for w in resume.writing %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.writing }}</h2>
+    {% endif %}
     <article class="entry">
       <h3 class="entry-title">{{ w.title }}</h3>
       {% if w.highlights.length %}
@@ -122,66 +139,78 @@
       </ul>
       {% endif %}
     </article>
+    {% if loop.first %}</div>{% endif %}
     {% endfor %}
   </section>
   {% endif %}
 
   {% if resume.awards.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
-    <ul class="cert-list">
-      {% for c in resume.awards %}
-      <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
-      {% endfor %}
-    </ul>
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
+      <ul class="cert-list">
+        {% for c in resume.awards %}
+        <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
   </section>
   {% endif %}
 
   {% if resume.skills.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.skills }}</h2>
-    <div class="skills-grid">
-      {% for s in resume.skills %}
-      <div class="skill-group">
-        <p class="skill-group__label">{{ s.label }}</p>
-        <p class="skill-group__items">{{ s.items | join(" · ") }}</p>
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.skills }}</h2>
+      <div class="skills-grid">
+        {% for s in resume.skills %}
+        <div class="skill-group">
+          <p class="skill-group__label">{{ s.label }}</p>
+          <p class="skill-group__items">{{ s.items | join(" · ") }}</p>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
   </section>
   {% endif %}
 
   {% if resume.languages.length or resume.interests.length %}
   <section class="cv-section">
-    <h2 class="cv-section-title section-opening">{{ resume.labels.additional }}</h2>
-    <div class="meta-grid">
-      {% if resume.languages.length %}
-      <div class="meta-block">
-        <p class="meta-block__label">{{ resume.labels.languages }}</p>
-        {% for l in resume.languages %}
-        <p>{{ l.name }}{% if l.note %} - {{ l.note }}{% endif %}</p>
-        {% endfor %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.additional }}</h2>
+      <div class="meta-grid">
+        {% if resume.languages.length %}
+        <div class="meta-block">
+          <p class="meta-block__label">{{ resume.labels.languages }}</p>
+          {% for l in resume.languages %}
+          <p>{{ l.name }}{% if l.note %} - {{ l.note }}{% endif %}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if resume.interests.length %}
+        <div class="meta-block">
+          <p class="meta-block__label">{{ resume.labels.interests }}</p>
+          <p>{{ resume.interests | join(", ") }}</p>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
-      {% if resume.interests.length %}
-      <div class="meta-block">
-        <p class="meta-block__label">{{ resume.labels.interests }}</p>
-        <p>{{ resume.interests | join(", ") }}</p>
-      </div>
-      {% endif %}
     </div>
   </section>
   {% endif %}
 
 </div>
 
+<script>window.PagedConfig = { auto: false };</script>
 <script src="/vendor/paged.polyfill.js"></script>
 <script>
 (function () {
   "use strict";
 
-  /* A4 preview + page numbers boot script - details: docs/A4_PRINT_VIEW_SPEC.md Part B */
-  var PAGE_PADDING_MM = 12; /* must match .page padding in resume.css */
+  /* A4 preview + page numbers boot script - details: docs/A4_PRINT_VIEW_SPEC.md Part B.
+     Everything injected from here lands AFTER paged.js has paginated, so it must
+     stay pure decoration: CSS that changes the box model invalidates the page
+     fills paged.js measured and the overflow ends up clipped (trap B4.9).
+     Page layout, .page padding included, belongs in resume.css. */
+  var PAGE_PADDING_MM = 12; /* aligns the page number with the .page padding in resume.css */
   var CV_PDF_URL = "/cv.pdf"; /* real file generated at build time (scripts/build-pdf.mjs) */
   var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* downloaded file name */
   function pageLabel(i, n) { return i + " / " + n; } /* change the page-number label here */
@@ -192,8 +221,6 @@
     + ".preview-page-number { position: absolute; left: 0; right: " + PAGE_PADDING_MM + "mm; bottom: 4mm;"
     + " text-align: right; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
     + " font-size: 8pt; line-height: 1; color: #666; }"
-    + ".pagedjs_area .page[data-split-from] { padding-top: " + PAGE_PADDING_MM + "mm !important; }"
-    + ".pagedjs_area .page[data-split-to] { padding-bottom: " + PAGE_PADDING_MM + "mm !important; }"
     + "@media print {"
     + " html, body { background: #fff; padding: 0 !important; }"
     + " .pagedjs_page { box-shadow: none; margin: 0; }"
@@ -342,6 +369,18 @@
   window.addEventListener("resize", function () {
     clearTimeout(fitTimer);
     fitTimer = setTimeout(fitWidth, 150);
+  });
+
+  /* Start pagination only after fonts are ready (PagedConfig.auto = false).
+     With fallback-font metrics paged.js measures differently and pagination
+     becomes nondeterministic - the same page can drop trailing content in one
+     run and render it in another (spec trap B4.8). 3s cap: never hang the
+     whole preview on a stuck font request. */
+  Promise.race([
+    document.fonts ? document.fonts.ready : Promise.resolve(),
+    new Promise(function (res) { setTimeout(res, 3000); })
+  ]).then(function () {
+    if (window.PagedPolyfill) window.PagedPolyfill.preview();
   });
 
   /* append AFTER pagination finishes - an element outside body before that gets pulled into the content by paged.js */

@@ -92,6 +92,18 @@ a {
     -webkit-box-decoration-break: clone;
 }
 
+/* paged.js strips the padding of a fragment it split (slice semantics), so a
+   continuation sheet would start at the very edge. This CV wants the full 12mm
+   margin on EVERY sheet - and the rule has to live HERE, in the document
+   stylesheet, so paged.js already measures that box while it fills the pages.
+   Adding it after pagination overfills the last block of a split page: the
+   browser then pushes the overflow into the next multicol column of
+   .pagedjs_page_content, which .pagedjs_sheet clips, and the content silently
+   vanishes from both the preview and the print output (spec Part B, trap B4.9). */
+.pagedjs_area .page {
+    padding: 12mm !important;
+}
+
 .text-meta {
     font-size: var(--fs-meta);
     color: var(--c-muted);
@@ -113,6 +125,15 @@ a {
 .section-opening {
     break-after: avoid-page;
     page-break-after: avoid;
+}
+
+/* Title + first content block of a section travel together: when the block
+   doesn't fit the remaining space, paged.js moves the WHOLE group to the next
+   page, so a section title can never sit orphaned at a page bottom. The group
+   stays small (title + one entry / one grid), safe per A6 note 1. */
+.section-start {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
 }
 
 .break-page {
@@ -282,6 +303,12 @@ a {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-3) var(--sp-8);
+    /* grids are atomic: paged.js cannot split a grid across pages - when one
+       straddles a page boundary it DROPS the overflowing rows instead of moving
+       them (spec A6 / trap B4.7). Each grid here is far smaller than a page,
+       so forcing it whole to the next page is always safe. */
+    break-inside: avoid-page;
+    page-break-inside: avoid;
 }
 
 .skill-group {
@@ -309,6 +336,9 @@ a {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-2) var(--sp-8);
+    /* atomic like the other grids - see .skills-grid note (trap B4.7) */
+    break-inside: avoid-page;
+    page-break-inside: avoid;
 }
 
 .cert-list li {
@@ -325,6 +355,9 @@ a {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-3) var(--sp-8);
+    /* atomic like the other grids - see .skills-grid note (trap B4.7) */
+    break-inside: avoid-page;
+    page-break-inside: avoid;
 }
 
 .meta-block__label {
