@@ -65,7 +65,9 @@ function showError(message) {
   a.href = FALLBACK_URL;
   a.textContent = "Open the HTML version instead";
   status.append(p, a);
-  status.hidden = false;
+  /* index.njk's 12s "viewer never loaded" fallback rewrites #pv-status. This
+     message is the specific one, so claim the slot and let that timer stand down. */
+  status.dataset.pvHandled = "1";
 }
 
 /* ----------------------------------------------------------------- toolbar */
@@ -103,8 +105,11 @@ function stepZoom(direction) {
 /* Print the real file rather than the rendered canvases: an off-screen iframe
    hands cv.pdf to the browser's own PDF print path. Engines that refuse to
    print a framed PDF fall back to opening it, where their viewer takes over. */
+let printFrame = null;
 function printPdf() {
+  printFrame?.remove(); /* one frame at a time: a click used to leak one forever */
   const frame = document.createElement("iframe");
+  printFrame = frame;
   frame.setAttribute("aria-hidden", "true");
   frame.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;";
   frame.src = PDF_URL;
@@ -142,7 +147,11 @@ function wireToolbar() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+    /* Arrow keys belong to whatever form control has focus (the zoom select
+       included) - only page the document when nothing is focused. */
+    const tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === "ArrowRight" || e.key === "PageDown") { pdfViewer.nextPage(); e.preventDefault(); }
     if (e.key === "ArrowLeft" || e.key === "PageUp") { pdfViewer.previousPage(); e.preventDefault(); }
   });
