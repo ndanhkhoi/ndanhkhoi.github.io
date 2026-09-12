@@ -2,16 +2,18 @@
   "name": "ndanhkhoi.github.io",
   "private": true,
   "version": "1.0.0",
-  "description": "Personal CV - print-first A4 HTML (Eleventy + Paged.js)",
+  "description": "Personal CV - print-first A4 HTML (Eleventy + Paged.js + PDF.js viewer)",
   "scripts": {
-    "dev": "npm run build && npm run build:pdf && eleventy --serve",
-    "build": "eleventy",
+    "dev": "eleventy --serve",
+    "build": "npm run build:html && npm run build:pdf",
+    "build:html": "eleventy",
     "build:pdf": "node scripts/build-pdf.mjs",
     "check:view": "python3 scripts/check_view.py"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.0",
     "pagedjs": "^0.4.3",
+    "pdfjs-dist": "^6.3.289",
     "puppeteer": "^24.0.0"
   },
   "dependencies": {

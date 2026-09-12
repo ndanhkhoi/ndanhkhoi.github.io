@@ -23,7 +23,14 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run build:pdf
+
+      # cv.pdf is the site: the homepage renders it with pdf.js. A build that
+      # produced HTML but no PDF would deploy a page with nothing to show, so
+      # fail here rather than publish it.
+      - name: Verify the PDF was produced
+        run: |
+          test -s _site/cv.pdf
+          node scripts/pdf-facts.mjs | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); if(!d.pages){console.error('cv.pdf has no pages');process.exit(1);} console.log('cv.pdf: '+d.pages+' pages, '+d.links.flat().length+' links');"
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4

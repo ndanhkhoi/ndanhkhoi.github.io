@@ -1,0 +1,189 @@
+<div class="page">
+
+  <header class="cv-header section--atomic">
+    <h1 class="cv-name">{{ resume.meta.name }}</h1>
+    <p class="cv-job-title">{{ resume.meta.jobTitle }}</p>
+    {% if resume.meta.contacts.length %}
+    <ul class="cv-contact">
+      {% for c in resume.meta.contacts %}
+      {% set text = c.text or c %}
+      <li>
+        {%- if c.icon == "location" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        {%- elif c.icon == "phone" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        {%- elif c.icon == "mail" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        {%- elif c.icon == "globe" -%}
+        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        {%- endif -%}
+        {%- if c.href -%}<a href="{{ c.href }}" target="_blank" rel="noopener">{{ text }}</a>{%- else -%}{{ text }}{%- endif -%}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </header>
+
+  {% if resume.summary %}
+  <section class="cv-section">
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
+      <p class="cv-summary">{{ resume.summary | autolink | safe }}</p>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if resume.education.length %}
+  <section class="cv-section">
+    {% for ed in resume.education %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
+    {% endif %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{% if ed.degree %}{{ ed.degree }}{% else %}{{ ed.school }}{% endif %}</h3>
+          {% if ed.degree and ed.school %}<p class="entry-sub">{{ ed.school }}</p>{% endif %}
+        </div>
+        <p class="entry-period text-meta">{{ ed.period }}</p>
+      </div>
+      {% if ed.detail %}<p class="entry-desc">{{ ed.detail | autolink | safe }}</p>{% endif %}
+    </article>
+    {% if loop.first %}</div>{% endif %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.experience.length %}
+  <section class="cv-section">
+    {% for e in resume.experience %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.experience }}</h2>
+    {% endif %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{{ e.position }}</h3>
+          <p class="entry-sub">{{ e.company }}{% if e.location %} · {{ e.location }}{% endif %}</p>
+        </div>
+        <p class="entry-period text-meta">{{ e.period }}</p>
+      </div>
+      {% if e.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in e.highlights -%}
+        <li>{{ h | autolink | safe }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
+    </article>
+    {% if loop.first %}</div>{% endif %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.projects.length %}
+  <section class="cv-section">
+    {% for p in resume.projects %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.projects }}</h2>
+    {% endif %}
+    <article class="entry">
+      <div class="entry-head">
+        <div class="entry-heading">
+          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}" target="_blank" rel="noopener">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+          {% if p.role %}<p class="entry-sub">{{ p.role }}</p>{% endif %}
+        </div>
+        <p class="entry-period text-meta">{{ p.period }}</p>
+      </div>
+      {% if p.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in p.highlights -%}
+        <li>{{ h | autolink | safe }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
+    </article>
+    {% if loop.first %}</div>{% endif %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.writing.length %}
+  <section class="cv-section">
+    {% for w in resume.writing %}
+    {% if loop.first %}
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.writing }}</h2>
+    {% endif %}
+    <article class="entry">
+      <h3 class="entry-title">{{ w.title }}</h3>
+      {% if w.highlights.length %}
+      <ul class="entry-highlights">
+        {%- for h in w.highlights -%}
+        <li>{{ h | autolink | safe }}</li>
+        {%- endfor -%}
+      </ul>
+      {% endif %}
+    </article>
+    {% if loop.first %}</div>{% endif %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if resume.awards.length %}
+  <section class="cv-section">
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
+      <ul class="cert-list">
+        {% for c in resume.awards %}
+        <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if resume.skills.length %}
+  <section class="cv-section">
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.skills }}</h2>
+      <div class="skills-grid">
+        {% for s in resume.skills %}
+        <div class="skill-group">
+          <p class="skill-group__label">{{ s.label }}</p>
+          <p class="skill-group__items">{{ s.items | join(" · ") }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if resume.languages.length or resume.interests.length %}
+  <section class="cv-section">
+    <div class="section-start">
+      <h2 class="cv-section-title section-opening">{{ resume.labels.additional }}</h2>
+      <div class="meta-grid">
+        {% if resume.languages.length %}
+        <div class="meta-block">
+          <p class="meta-block__label">{{ resume.labels.languages }}</p>
+          {% for l in resume.languages %}
+          <p>{{ l.name }}{% if l.note %} - {{ l.note }}{% endif %}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if resume.interests.length %}
+        <div class="meta-block">
+          <p class="meta-block__label">{{ resume.labels.interests }}</p>
+          <p>{{ resume.interests | join(", ") }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+</div>

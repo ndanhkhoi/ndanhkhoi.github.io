@@ -4,19 +4,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
 
-/* Build the PDF from _site/index.html - prints the exact DOM paginated by paged.js */
+/* Build _site/cv.pdf from _site/print.html - the DOM paged.js split into A4
+   sheets. That PDF is the site: the homepage renders it with pdf.js, so this
+   file is what every visitor sees and downloads. */
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SITE = path.join(ROOT, "_site");
+const SOURCE = "/print.html";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css",
   ".js": "text/javascript",
+  ".mjs": "text/javascript",
   ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
   ".pdf": "application/pdf"
 };
 
-if (!fs.existsSync(path.join(SITE, "index.html"))) {
-  console.error("_site/index.html not found - run `npm run build` first.");
+if (!fs.existsSync(path.join(SITE, "print.html"))) {
+  console.error("_site/print.html not found - run `npm run build:html` first.");
   process.exit(1);
 }
 
@@ -47,21 +52,25 @@ const browser = await puppeteer.launch({
 });
 try {
   const page = await browser.newPage();
-  await page.setViewport({ width: 1200, height: 900 }); /* wide viewport → zoom = 1 */
-  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle0" });
+  await page.setViewport({ width: 1200, height: 900 }); /* wide viewport → sheets at 100% */
+  await page.goto(`http://127.0.0.1:${port}${SOURCE}`, { waitUntil: "networkidle0" });
 
-  /* Wait for paged.js pagination to stabilize + page numbers stamped (boot script done) */
+  /* The boot script stamps data-paged-ready only after the page count has been
+     stable for three polls and every sheet carries its number - printing before
+     that bakes a half-finished pagination into the PDF. */
   await page.waitForFunction(
     () => {
+      const ready = document.documentElement.getAttribute("data-paged-ready");
       const pages = document.querySelectorAll(".pagedjs_page");
       return (
+        ready !== null &&
+        Number(ready) === pages.length &&
         pages.length > 0 &&
         document.querySelectorAll(".preview-page-number").length === pages.length
       );
     },
     { timeout: 60000 }
   );
-  await new Promise((r) => setTimeout(r, 500));
 
   const out = path.join(SITE, "cv.pdf");
   await page.pdf({
@@ -70,10 +79,6 @@ try {
     preferCSSPageSize: true,
     timeout: 60000
   });
-
-  /* Also copy into src/cv.pdf so the passthrough copy runs on every eleventy
-     rebuild (eleventy wipes _site on build → the file survives during dev) */
-  fs.copyFileSync(out, path.join(ROOT, "src", "cv.pdf"));
 
   const kb = Math.round(fs.statSync(out).size / 1024);
   console.log(`cv.pdf written (${kb} KB)`);

@@ -1,0 +1,116 @@
+---
+permalink: /print.html
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ resume.meta.name }} - CV">
+  <title>{{ resume.meta.name }} - CV</title>
+  <link rel="canonical" href="/">
+  <link rel="stylesheet" href="/fonts/inter.css">
+  <link rel="stylesheet" href="/css/resume.css">
+</head>
+<body>
+{% include "cv-document.njk" %}
+
+<script>window.PagedConfig = { auto: false };</script>
+<script src="/vendor/paged.polyfill.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Print source: paged.js splits the document into A4 sheets and this script
+     stamps the page numbers. scripts/build-pdf.mjs prints exactly this DOM to
+     _site/cv.pdf, and the site's viewer (/) renders that PDF - so this page is
+     the only place pagination ever happens. Details: docs/A4_PRINT_VIEW_SPEC.md.
+
+     Everything injected from here lands AFTER paged.js has paginated, so it
+     must stay pure decoration: CSS that changes the box model invalidates the
+     page fills paged.js measured and the overflow gets clipped (trap B4.9).
+     Page layout, .page padding included, belongs in resume.css. */
+  var PAGE_PADDING_MM = 12; /* aligns the page number with the .page padding in resume.css */
+  function pageLabel(i, n) { return i + " / " + n; } /* change the page-number label here */
+
+  var CSS = ""
+    + "html, body { background: #525659; }"
+    + ".pagedjs_page { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.4); margin: 10mm auto; position: relative; }"
+    + ".preview-page-number { position: absolute; left: 0; right: " + PAGE_PADDING_MM + "mm; bottom: 4mm;"
+    + " text-align: right; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
+    + " font-size: 8pt; line-height: 1; color: #666; }"
+    + "@media print {"
+    + " html, body { background: #fff; }"
+    + " .pagedjs_page { box-shadow: none; margin: 0; }"
+    + "}";
+
+  /* Broken or blocked paged.js vendor file: no sheets, but the CV stays readable */
+  var FALLBACK_CSS = ""
+    + "html, body { background: #ececec; }"
+    + "body { padding: 10mm 0; }"
+    + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
+    + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
+
+  function ensureStyle(marker, css) {
+    if (document.querySelector("style[" + marker + "]")) return;
+    var s = document.createElement("style");
+    s.setAttribute(marker, "1");
+    s.textContent = css;
+    document.head.appendChild(s); /* attach AFTER paged.js has finished paginating */
+  }
+
+  /* Start pagination only after fonts are ready (PagedConfig.auto = false).
+     With fallback-font metrics paged.js measures differently and pagination
+     becomes nondeterministic - the same page can drop trailing content in one
+     run and render it in another (spec trap B4.8). 3s cap: never hang on a
+     stuck font request. */
+  Promise.race([
+    document.fonts ? document.fonts.ready : Promise.resolve(),
+    new Promise(function (res) { setTimeout(res, 3000); })
+  ]).then(function () {
+    if (window.PagedPolyfill) window.PagedPolyfill.preview();
+  });
+
+  /* Stamp only once the page count stops moving: paged.js grows the sheet list
+     incrementally, and numbering a half-finished run bakes in a wrong total.
+     data-paged-ready is the "pagination finished" signal build-pdf.mjs and
+     scripts/check_view.py both wait for. */
+  var TIMEOUT_MS = 60000, INTERVAL_MS = 150, STABLE_POLLS = 3;
+  var started = Date.now(), lastCount = -1, stable = 0, seenPage = false;
+
+  function tick() {
+    var pages = document.querySelectorAll(".pagedjs_page");
+    if (!pages.length) return false;
+    if (!seenPage) { seenPage = true; started = Date.now(); } /* reset the window once pagination starts (slow font loading) */
+    ensureStyle("data-paged-preview-css", CSS);
+    if (pages.length === lastCount) stable++; else { stable = 0; lastCount = pages.length; }
+    if (stable < STABLE_POLLS) return false;
+
+    var old = document.querySelectorAll(".preview-page-number");
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    for (var j = 0; j < pages.length; j++) {
+      var label = document.createElement("div");
+      label.className = "preview-page-number";
+      label.textContent = pageLabel(j + 1, pages.length);
+      pages[j].appendChild(label);
+    }
+    document.documentElement.setAttribute("data-paged-ready", pages.length);
+    return true;
+  }
+
+  var fallbackTimer = setTimeout(function () {
+    if (!document.querySelector(".pagedjs_page") && !window.Paged) {
+      ensureStyle("data-paged-fallback-css", FALLBACK_CSS);
+    }
+  }, 4000);
+
+  var timer = setInterval(function () {
+    if (tick() || Date.now() - started > TIMEOUT_MS) {
+      clearInterval(timer);
+      clearTimeout(fallbackTimer);
+    }
+  }, INTERVAL_MS);
+})();
+</script>
+</body>
+</html>

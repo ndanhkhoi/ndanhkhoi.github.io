@@ -5,506 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{{ resume.meta.name }} - CV">
   <title>{{ resume.meta.name }} - CV</title>
-  <link rel="stylesheet" href="/fonts/inter.css">
-  <link rel="stylesheet" href="/css/resume.css">
+  <!-- No webfont here: the CV's own type is baked into cv.pdf, and the only text
+       this page sets is the toolbar. The no-JS branch below loads Inter, because
+       there the browser really is typesetting the CV. -->
+  <link rel="stylesheet" href="/vendor/pdfjs/pdf_viewer.css">
+  <link rel="stylesheet" href="/css/viewer.css">
+  <noscript><style>#pv-status { display: none; }</style></noscript>
 </head>
-<body>
-<div class="page">
+<body data-pdf-name="{{ resume.meta.name | slug }}-cv.pdf">
 
-  <header class="cv-header section--atomic">
-    <h1 class="cv-name">{{ resume.meta.name }}</h1>
-    <p class="cv-job-title">{{ resume.meta.jobTitle }}</p>
-    {% if resume.meta.contacts.length %}
-    <ul class="cv-contact">
-      {% for c in resume.meta.contacts %}
-      {% set text = c.text or c %}
-      <li>
-        {%- if c.icon == "location" -%}
-        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        {%- elif c.icon == "phone" -%}
-        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        {%- elif c.icon == "mail" -%}
-        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        {%- elif c.icon == "globe" -%}
-        <svg class="cv-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        {%- endif -%}
-        {%- if c.href -%}<a href="{{ c.href }}" target="_blank" rel="noopener">{{ text }}</a>{%- else -%}{{ text }}{%- endif -%}
-      </li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </header>
+<header class="pv-toolbar" role="toolbar" aria-label="PDF viewer">
+  <div class="pv-toolbar__group">
+    <button type="button" id="previous" class="pv-btn" title="Previous page" aria-label="Previous page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+    <button type="button" id="next" class="pv-btn" title="Next page" aria-label="Next page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <span class="pv-pages">
+      <input type="number" id="pageNumber" class="pv-pageinput" value="1" min="1" step="1"
+             aria-label="Page number" autocomplete="off">
+      <span id="numPages" class="pv-pagetotal"></span>
+    </span>
+  </div>
 
-  {% if resume.summary %}
-  <section class="cv-section">
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.summary }}</h2>
-      <p class="cv-summary">{{ resume.summary | autolink | safe }}</p>
-    </div>
-  </section>
-  {% endif %}
+  <div class="pv-toolbar__group pv-toolbar__group--zoom">
+    <button type="button" id="zoomOut" class="pv-btn" title="Zoom out" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button type="button" id="zoomIn" class="pv-btn" title="Zoom in" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+    </button>
+    <select id="zoomSelect" class="pv-select" aria-label="Zoom level">
+      <option value="auto">Automatic</option>
+      <option value="page-actual">Actual size</option>
+      <option value="page-fit">Page fit</option>
+      <option value="page-width">Page width</option>
+      <option value="0.5">50%</option>
+      <option value="0.75">75%</option>
+      <option value="1">100%</option>
+      <option value="1.25">125%</option>
+      <option value="1.5">150%</option>
+      <option value="2">200%</option>
+      <option value="custom" hidden></option>
+    </select>
+  </div>
 
-  {% if resume.education.length %}
-  <section class="cv-section">
-    {% for ed in resume.education %}
-    {% if loop.first %}
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.education }}</h2>
-    {% endif %}
-    <article class="entry">
-      <div class="entry-head">
-        <div class="entry-heading">
-          <h3 class="entry-title">{% if ed.degree %}{{ ed.degree }}{% else %}{{ ed.school }}{% endif %}</h3>
-          {% if ed.degree and ed.school %}<p class="entry-sub">{{ ed.school }}</p>{% endif %}
-        </div>
-        <p class="entry-period text-meta">{{ ed.period }}</p>
-      </div>
-      {% if ed.detail %}<p class="entry-desc">{{ ed.detail | autolink | safe }}</p>{% endif %}
-    </article>
-    {% if loop.first %}</div>{% endif %}
-    {% endfor %}
-  </section>
-  {% endif %}
+  <div class="pv-toolbar__group pv-toolbar__group--end">
+    <button type="button" id="print" class="pv-btn" title="Print" aria-label="Print">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    </button>
+    <a id="download" class="pv-btn" href="/cv.pdf" title="Download" aria-label="Download">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </a>
+  </div>
+</header>
 
-  {% if resume.experience.length %}
-  <section class="cv-section">
-    {% for e in resume.experience %}
-    {% if loop.first %}
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.experience }}</h2>
-    {% endif %}
-    <article class="entry">
-      <div class="entry-head">
-        <div class="entry-heading">
-          <h3 class="entry-title">{{ e.position }}</h3>
-          <p class="entry-sub">{{ e.company }}{% if e.location %} · {{ e.location }}{% endif %}</p>
-        </div>
-        <p class="entry-period text-meta">{{ e.period }}</p>
-      </div>
-      {% if e.highlights.length %}
-      <ul class="entry-highlights">
-        {%- for h in e.highlights -%}
-        <li>{{ h | autolink | safe }}</li>
-        {%- endfor -%}
-      </ul>
-      {% endif %}
-    </article>
-    {% if loop.first %}</div>{% endif %}
-    {% endfor %}
-  </section>
-  {% endif %}
-
-  {% if resume.projects.length %}
-  <section class="cv-section">
-    {% for p in resume.projects %}
-    {% if loop.first %}
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.projects }}</h2>
-    {% endif %}
-    <article class="entry">
-      <div class="entry-head">
-        <div class="entry-heading">
-          <h3 class="entry-title">{% if p.link %}<a href="{{ p.link }}" target="_blank" rel="noopener">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
-          {% if p.role %}<p class="entry-sub">{{ p.role }}</p>{% endif %}
-        </div>
-        <p class="entry-period text-meta">{{ p.period }}</p>
-      </div>
-      {% if p.highlights.length %}
-      <ul class="entry-highlights">
-        {%- for h in p.highlights -%}
-        <li>{{ h | autolink | safe }}</li>
-        {%- endfor -%}
-      </ul>
-      {% endif %}
-    </article>
-    {% if loop.first %}</div>{% endif %}
-    {% endfor %}
-  </section>
-  {% endif %}
-
-  {% if resume.writing.length %}
-  <section class="cv-section">
-    {% for w in resume.writing %}
-    {% if loop.first %}
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.writing }}</h2>
-    {% endif %}
-    <article class="entry">
-      <h3 class="entry-title">{{ w.title }}</h3>
-      {% if w.highlights.length %}
-      <ul class="entry-highlights">
-        {%- for h in w.highlights -%}
-        <li>{{ h | autolink | safe }}</li>
-        {%- endfor -%}
-      </ul>
-      {% endif %}
-    </article>
-    {% if loop.first %}</div>{% endif %}
-    {% endfor %}
-  </section>
-  {% endif %}
-
-  {% if resume.awards.length %}
-  <section class="cv-section">
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.awards }}</h2>
-      <ul class="cert-list">
-        {% for c in resume.awards %}
-        <li><span class="cert-name">{{ c.name }}</span>{% if c.extra %} - {{ c.extra }}{% endif %}</li>
-        {% endfor %}
-      </ul>
-    </div>
-  </section>
-  {% endif %}
-
-  {% if resume.skills.length %}
-  <section class="cv-section">
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.skills }}</h2>
-      <div class="skills-grid">
-        {% for s in resume.skills %}
-        <div class="skill-group">
-          <p class="skill-group__label">{{ s.label }}</p>
-          <p class="skill-group__items">{{ s.items | join(" · ") }}</p>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-  {% endif %}
-
-  {% if resume.languages.length or resume.interests.length %}
-  <section class="cv-section">
-    <div class="section-start">
-      <h2 class="cv-section-title section-opening">{{ resume.labels.additional }}</h2>
-      <div class="meta-grid">
-        {% if resume.languages.length %}
-        <div class="meta-block">
-          <p class="meta-block__label">{{ resume.labels.languages }}</p>
-          {% for l in resume.languages %}
-          <p>{{ l.name }}{% if l.note %} - {{ l.note }}{% endif %}</p>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% if resume.interests.length %}
-        <div class="meta-block">
-          <p class="meta-block__label">{{ resume.labels.interests }}</p>
-          <p>{{ resume.interests | join(", ") }}</p>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </section>
-  {% endif %}
-
+<div id="viewerContainer" class="pv-container">
+  <div id="viewer" class="pdfViewer"></div>
 </div>
 
-<script>window.PagedConfig = { auto: false };</script>
-<script src="/vendor/paged.polyfill.js"></script>
+<div id="pv-status" class="pv-status"><div class="pv-spinner"></div></div>
+
+<!-- The CV text, for crawlers and for anyone without JS. Same content as the
+     PDF above (both come from src/_includes/cv-document.njk), so the page is
+     never an empty canvas to a reader that cannot run pdf.js. -->
+<noscript>
+  <link rel="stylesheet" href="/fonts/inter.css">
+  <link rel="stylesheet" href="/css/resume.css">
+  <style>
+    .pv-toolbar, .pv-container { display: none; }
+    html, body { background: #ececec; }
+    body { padding: 10mm 0; }
+    .page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;
+            box-shadow: 0 1mm 5mm rgba(0, 0, 0, 0.16); }
+  </style>
+  {% include "cv-document.njk" %}
+</noscript>
+
+<script type="module" src="/js/viewer.js"></script>
 <script>
-(function () {
-  "use strict";
-
-  /* A4 preview + page numbers boot script - details: docs/A4_PRINT_VIEW_SPEC.md Part B.
-     Everything injected from here lands AFTER paged.js has paginated, so it must
-     stay pure decoration: CSS that changes the box model invalidates the page
-     fills paged.js measured and the overflow ends up clipped (trap B4.9).
-     Page layout, .page padding included, belongs in resume.css. */
-  var PAGE_PADDING_MM = 12; /* aligns the page number with the .page padding in resume.css */
-  var CV_PDF_URL = "/cv.pdf"; /* real file generated at build time (scripts/build-pdf.mjs) */
-  var CV_PDF_NAME = "{{ resume.meta.name | slug }}-cv.pdf"; /* downloaded file name */
-  function pageLabel(i, n) { return i + " / " + n; } /* change the page-number label here */
-
-  var CSS = ""
-    + "html, body { background: #525659; }"
-    + ".pagedjs_page { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.4); margin: 10mm auto; position: relative; }"
-    + ".preview-page-number { position: absolute; left: 0; right: " + PAGE_PADDING_MM + "mm; bottom: 4mm;"
-    + " text-align: right; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
-    + " font-size: 8pt; line-height: 1; color: #666; }"
-    + "@media print {"
-    + " html, body { background: #fff; padding: 0 !important; }"
-    + " .pagedjs_page { box-shadow: none; margin: 0; }"
-    + " .pagedjs_pages, .page { zoom: 1 !important; opacity: 1 !important; }" /* reset mobile fit-width + loading state when printing */
-    + " body::after { content: none !important; }" /* spinner off even if printed mid-load */
-    + "}";
-
-  var FALLBACK_CSS = ""
-    + "html, body { background: #ececec; }"
-    + "body { padding: 10mm 0; }"
-    + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
-    + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
-
-  /* PDF button (dropdown: Download PDF / Print PDF) - screen only, hidden when printing.
-     Injected at reveal time: kills the loading spinner and fades the button in
-     AFTER the sheets' staggered fade (last thing to appear). */
-  var ACTIONS_CSS = ""
-    + "body::after { content: none !important; }" /* spinner off once revealed */
-    + "@keyframes cv-menu-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }"
-    + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999;"
-    + " animation: cv-menu-in 0.3s ease 0.55s backwards; }"
-    + ".pdf-menu__toggle { display: inline-flex; align-items: center; gap: 8px; border: 0;"
-    + " border-radius: 9999px; padding: 13px 18px; background: #16437e; color: #fff;"
-    + " font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
-    + " font-size: 14px; font-weight: 700; letter-spacing: 0.2px; line-height: 1; cursor: pointer;"
-    + " box-shadow: 0 4px 14px rgba(0,0,0,0.35); -webkit-tap-highlight-color: transparent; }"
-    + ".pdf-menu__toggle:hover { background: #1d56a0; }"
-    + ".pdf-menu__toggle svg { width: 16px; height: 16px; }"
-    + ".pdf-menu__toggle .chevron { transition: transform 0.15s ease; }"
-    + ".pdf-menu--open .pdf-menu__toggle { background: #1d56a0; }"
-    + ".pdf-menu--open .pdf-menu__toggle .chevron { transform: rotate(180deg); }"
-    + ".pdf-menu__list { position: absolute; right: 0; bottom: calc(100% + 10px); display: none;"
-    + " flex-direction: column; gap: 4px; min-width: 176px; background: #fff; border-radius: 14px;"
-    + " padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }"
-    + ".pdf-menu--open .pdf-menu__list { display: flex; }"
-    + ".pdf-menu__item { display: flex; align-items: center; gap: 10px; border: 0; background: transparent;"
-    + " border-radius: 10px; padding: 11px 12px; color: #1f2937; text-align: left; text-decoration: none;"
-    + " font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
-    + " font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer;"
-    + " -webkit-tap-highlight-color: transparent; }"
-    + ".pdf-menu__item:hover { background: #eef3fa; color: #16437e; }"
-    + ".pdf-menu__item svg { width: 16px; height: 16px; }"
-    + "@media screen and (max-width: 640px) {"
-    + " body { padding-bottom: 76px; }" /* keep the button from covering the last sheet's page number */
-    + " .pdf-menu { right: 12px; bottom: 12px; }"
-    + " .pdf-menu__list { min-width: 200px; }"
-    + "}"
-    + "@media (prefers-reduced-motion: reduce) { .pdf-menu { animation: none; } }"
-    + "@media print { .pdf-menu { display: none !important; } }";
-
-  var SVG_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
-    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
-    + '<polyline points="14 2 14 8 20 8"/></svg>';
-  var SVG_CHEVRON = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
-    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<polyline points="18 15 12 9 6 15"/></svg>';
-  var SVG_PRINTER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
-    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>'
-    + '<rect x="6" y="14" width="12" height="8"/></svg>';
-  var SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
-    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
-    + '<polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-
-  function ensureStyle(marker, css) {
-    if (document.querySelector("style[" + marker + "]")) return;
-    var s = document.createElement("style");
-    s.setAttribute(marker, "1");
-    s.textContent = css;
-    document.head.appendChild(s); /* attach AFTER paged.js has finished paginating */
-  }
-
-  /* Mobile fit-width: shrink the A4 sheet to screen width like a real PDF viewer.
-     CSS zoom - reset to 1 when printing (see @media print in the CSS above).
-     Width source is documentElement.clientWidth, NOT window.innerWidth: on
-     mobile browsers innerWidth tracks overflowing content (the unshrunk 794px
-     A4 sheet), so zoom would compute from the wrong width and never fit.
-     NEVER scale while pagination is running - scaled boxes skew paged.js height
-     measurements and corrupt the page count. The raw .page stays hidden behind
-     the gray backdrop until pagination is stable, then the sheets are zoomed
-     and revealed in one step. */
-  var A4_PX = 793.7; /* 210mm @ 96dpi */
-  var fitMode = "pending"; /* pending → paged (stable) | fallback (paged.js broken) */
-  function viewWidth() {
-    return document.documentElement.clientWidth || window.innerWidth;
-  }
-  function fitWidth() {
-    if (fitMode === "pending") return;
-    var target = fitMode === "paged"
-      ? document.querySelector(".pagedjs_pages")
-      : document.querySelector(".page");
-    if (!target) return;
-    target.style.zoom = Math.min(1, (viewWidth() - (viewWidth() <= 640 ? 16 : 24)) / A4_PX);
-  }
-  function revealContent() {
-    var s = document.querySelector("style[data-paged-backdrop-css]");
-    if (s) s.remove();
-    var reduced = window.matchMedia
-      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var i, sheets = document.querySelectorAll(".page");
-    var wrap = document.querySelector(".pagedjs_pages");
-    if (wrap) {
-      var pages = wrap.querySelectorAll(".pagedjs_page");
-      for (i = 0; i < pages.length; i++) pages[i].style.opacity = "0";
-      /* clear the early inline hide on ALL .page elements - paged.js clones
-         .page across splits and each clone carries the inline style; the
-         sheets' staggered fade controls visibility from here */
-      for (i = 0; i < sheets.length; i++) sheets[i].style.opacity = "";
-      void wrap.offsetHeight; /* flush so the sheets transition from opacity 0 */
-      for (i = 0; i < pages.length; i++) {
-        pages[i].style.transition = reduced ? "none" : "opacity 0.35s ease " + (i * 80) + "ms";
-        pages[i].style.opacity = "1";
-      }
-      wrap.style.opacity = "1"; /* inline beats the backdrop rule cloned into the paged.js blob */
-    } else {
-      /* no pagination (broken vendor) - fade the raw sheet */
-      for (i = 0; i < sheets.length; i++) {
-        sheets[i].style.transition = reduced ? "none" : "opacity 0.35s ease";
-        sheets[i].style.opacity = "1";
-      }
-    }
-  }
-  /* Loading state, from the first paint: gray backdrop + spinner, the whole
-     document invisible until pagination is stable (like a PDF viewer opening a
-     file) - then the sheets fade in staggered and the PDF button arrives last.
-     paged.js CLONES rules of style tags present at DOMContentLoaded into its
-     own blob, so anything hiding the document here must stay overridable
-     afterwards: inline styles for elements (always win over rules) and the
-     late-injected `body::after { content: none !important }` for the spinner.
-     Never put @media in this tag (flattening trap B4.1) - print safety lives
-     in the late CSS. The inline hide keeps the no-JS print-pure fallback
-     (.page visible) untouched. */
-  ensureStyle("data-paged-backdrop-css",
-      "html, body { background: #525659; }"
-    + ".pagedjs_pages { opacity: 0; }"
-    + "body::after { content: \"\"; position: fixed; left: 50%; top: 50%; width: 28px; height: 28px;"
-    + " margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.22);"
-    + " border-top-color: rgba(255,255,255,0.85); animation: cv-spin 0.8s linear infinite; }"
-    + "@keyframes cv-spin { to { transform: rotate(360deg); } }");
-  var earlyPage = document.querySelector(".page");
-  if (earlyPage) earlyPage.style.opacity = "0";
-  window.addEventListener("orientationchange", function () { setTimeout(fitWidth, 60); });
-  var fitTimer;
-  window.addEventListener("resize", function () {
-    clearTimeout(fitTimer);
-    fitTimer = setTimeout(fitWidth, 150);
-  });
-
-  /* Start pagination only after fonts are ready (PagedConfig.auto = false).
-     With fallback-font metrics paged.js measures differently and pagination
-     becomes nondeterministic - the same page can drop trailing content in one
-     run and render it in another (spec trap B4.8). 3s cap: never hang the
-     whole preview on a stuck font request. */
-  Promise.race([
-    document.fonts ? document.fonts.ready : Promise.resolve(),
-    new Promise(function (res) { setTimeout(res, 3000); })
-  ]).then(function () {
-    if (window.PagedPolyfill) window.PagedPolyfill.preview();
-  });
-
-  /* append AFTER pagination finishes - an element outside body before that gets pulled into the content by paged.js */
-  var actionsAdded = false;
-  function ensureActions() {
-    if (actionsAdded) return;
-    actionsAdded = true;
-    ensureStyle("data-pdf-menu-css", ACTIONS_CSS);
-    fitWidth();
-
-    var menu = document.createElement("div");
-    menu.className = "pdf-menu";
-
-    var list = document.createElement("div");
-    list.className = "pdf-menu__list";
-    list.setAttribute("role", "menu");
-
-    var printItem = document.createElement("button");
-    printItem.type = "button";
-    printItem.className = "pdf-menu__item";
-    printItem.setAttribute("role", "menuitem");
-    printItem.innerHTML = SVG_PRINTER + "<span>Print PDF</span>";
-    printItem.title = "Open the print dialog (Ctrl/Cmd+P)";
-
-    var dlItem = document.createElement("a");
-    dlItem.className = "pdf-menu__item";
-    dlItem.setAttribute("role", "menuitem");
-    dlItem.innerHTML = SVG_DOWNLOAD + "<span>Download PDF</span>";
-    dlItem.href = CV_PDF_URL;
-    dlItem.setAttribute("download", CV_PDF_NAME);
-    dlItem.title = "Download the PDF file";
-    /* PDF not built yet (e.g. build:pdf not run) → hide the Download item,
-       avoids confusion with print behavior */
-    fetch(CV_PDF_URL, { method: "HEAD" }).then(function (r) {
-      if (!r.ok) {
-        dlItem.remove();
-        console.warn(CV_PDF_URL + " does not exist - run `npm run build:pdf` to get the Download PDF item.");
-      }
-    }).catch(function () {});
-
-    var toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "pdf-menu__toggle";
-    toggle.innerHTML = SVG_FILE + "<span>PDF</span>" + SVG_CHEVRON;
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-haspopup", "menu");
-
-    function setOpen(open) {
-      menu.classList.toggle("pdf-menu--open", open);
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    }
-    toggle.addEventListener("click", function (e) {
-      e.stopPropagation();
-      setOpen(!menu.classList.contains("pdf-menu--open"));
-    });
-    document.addEventListener("click", function (e) {
-      if (!menu.contains(e.target)) setOpen(false);
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") setOpen(false);
-    });
-    printItem.addEventListener("click", function () {
-      setOpen(false);
-      window.print();
-    });
-
-    list.appendChild(dlItem);
-    list.appendChild(printItem);
-    menu.appendChild(list);
-    menu.appendChild(toggle);
-    document.body.appendChild(menu);
-  }
-
-  var TIMEOUT_MS = 60000, INTERVAL_MS = 150, STABLE_POLLS = 3;
-  var started = Date.now(), lastCount = -1, stable = 0, stamped = -1, seenPage = false;
-
-  function tick() {
-    var pages = document.querySelectorAll(".pagedjs_page");
-    if (!pages.length) return false;
-    if (!seenPage) { seenPage = true; started = Date.now(); } /* reset the window once pagination starts (slow font loading) */
-    ensureStyle("data-paged-preview-css", CSS);
-    if (pages.length === lastCount) stable++; else { stable = 0; lastCount = pages.length; }
-    if (stable < STABLE_POLLS) return false;
-    if (stamped === pages.length) return true;
-
-    var old = document.querySelectorAll(".preview-page-number");
-    for (var i = 0; i < old.length; i++) old[i].remove();
-    for (var j = 0; j < pages.length; j++) {
-      var label = document.createElement("div");
-      label.className = "preview-page-number";
-      label.textContent = pageLabel(j + 1, pages.length);
-      pages[j].appendChild(label);
-    }
-    stamped = pages.length;
-    fitMode = "paged";
-    revealContent();
-    ensureActions();
-    return true;
-  }
-
-  /* Broken paged.js vendor → the A4 sheets + button still work, only page numbers are missing */
-  var fallbackTimer = setTimeout(function () {
-    if (!document.querySelector(".pagedjs_page") && !window.Paged) {
-      fitMode = "fallback";
-      revealContent();
-      ensureStyle("data-paged-fallback-css", FALLBACK_CSS);
-      ensureActions();
-    }
-  }, 4000);
-
-  var timer = setInterval(function () {
-    if (tick()) {
-      clearInterval(timer);
-      clearTimeout(fallbackTimer);
-    } else if (Date.now() - started > TIMEOUT_MS) {
-      /* timeout - never leave the sheet hidden behind the backdrop */
-      clearInterval(timer);
-      clearTimeout(fallbackTimer);
-      fitMode = document.querySelector(".pagedjs_page") ? "paged" : "fallback";
-      revealContent();
-      ensureActions();
-    }
-  }, INTERVAL_MS);
-})();
+  /* The viewer module may never run (blocked, 404, unsupported browser).
+     Without this the homepage would spin forever with the CV one click away. */
+  setTimeout(function () {
+    var status = document.getElementById("pv-status");
+    if (!status || document.documentElement.dataset.pvReady) return;
+    status.textContent = "";
+    var p = document.createElement("p");
+    p.textContent = "The CV viewer did not load.";
+    var a = document.createElement("a");
+    a.href = "/print.html";
+    a.textContent = "Open the HTML version instead";
+    status.appendChild(p);
+    status.appendChild(a);
+  }, 12000);
 </script>
 </body>
 </html>
