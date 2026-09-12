@@ -2,14 +2,18 @@
 
 One CV, two renderings, one source of truth.
 
-- **`/`** - a modern, responsive, animated web resume. Server-rendered HTML with
-  one small progressive-enhancement script; no client framework.
+- **`/`** - the web resume: responsive, themed and animated, but set like a
+  document rather than a dashboard - hairline rules, no cards, a display serif
+  for the name and the section titles. Server-rendered HTML with one small
+  progressive-enhancement script; no client framework.
 - **`/cv.pdf`** - the A4 document, paginated and printed at build time. Every
   "Download CV" button just opens it in a new tab.
 
-Both come from `src/data/resume.js`. Edit that file and both change.
+Both come from `src/data/resume.js`, which holds the CV and nothing else -
+there is no copy written for the web. Edit that file and both change.
 
 - **SSG**: [Astro](https://astro.build/) - static output, zero JS by default
+- **Type**: Instrument Serif (display) + Inter, both self-hosted from npm
 - **Pagination**: [Paged.js](https://pagedjs.org/) - at build time only, on `/print.html`
 - **PDF**: headless Chromium (puppeteer) prints `/print.html` to `cv.pdf`
 - **Deploy**: GitHub Actions build → `gh-pages` branch → GitHub Pages
@@ -33,7 +37,7 @@ src/data/resume.js
 | `src/pages/print.astro` | `/print.html`: pagination source + page numbers, also the plain-HTML copy |
 | `src/components/web/*` | Web resume components |
 | `src/components/print/*` | The A4 document |
-| `src/styles/site.css` | Web resume styles (themes, motion) - loaded only by `/` |
+| `src/styles/site.css` | Web resume styles - the design brief, themes, motion. Loaded only by `/` |
 | `src/styles/resume.css` | A4 document styles, following the print spec |
 | `src/scripts/site.ts` | Theme, scrollspy, reading progress, reveal-on-scroll |
 | `docs/A4_PRINT_VIEW_SPEC.md` | The single spec: A4 design + build pipeline + traps |

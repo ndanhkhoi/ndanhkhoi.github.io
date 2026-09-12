@@ -204,9 +204,15 @@ every dev and build run, and Astro copies `public/` into `_site` verbatim:
 
 ```text
 lib/paged.polyfill.js   pagination for /print.html
-fonts/inter.css         @font-face rules, vietnamese + latin subsets
+fonts/fonts.css         @font-face rules for both faces, one file for both pages
 fonts/files/*.woff2     Inter 400/500/600/700 (400/700 for the A4 document, 500/600 for web UI type)
+                        Instrument Serif 400 (the web resume's display face only)
 ```
+
+`prepare-assets.mjs` builds that stylesheet from the same list it copies the
+files from: a `@font-face` rule whose file was never copied is a 404 the moment
+a reader types a character in its unicode-range, and "latin" being a prefix of
+"latin-ext" makes that an easy mistake to write.
 
 `public/` is generated and gitignored - nothing is committed into it by hand.
 `scripts/build-pdf.mjs` also mirrors the finished `cv.pdf` there so `astro dev`
@@ -253,10 +259,14 @@ competing as duplicate content.
 ## B3. Stage 2 - `cv.pdf`
 
 `npm run build:pdf` (`scripts/build-pdf.mjs`) serves `_site` over HTTP (paged.js
-cannot load CSS over `file://`), opens `/print.html` in headless Chromium at a
-1200px viewport, waits for `data-paged-ready` to match both the sheet count and
-the stamped-number count, then prints with `preferCSSPageSize` +
+cannot load CSS over `file://`), opens `/print.html` in `chrome-headless-shell`
+at a 1200px viewport, waits for `data-paged-ready` to match both the sheet count
+and the stamped-number count, then prints with `preferCSSPageSize` +
 `printBackground`.
+
+The shell, not Chrome's newer built-in headless mode: paged.js advances its
+chunker one animation frame at a time and the new mode can produce none at all,
+which hangs the build with no error to read (trap B4.20).
 
 The result is written into `_site/cv.pdf` (and mirrored to `public/cv.pdf` for
 the dev server). It is **not** an Astro input: Astro clears `_site` at the start
@@ -279,15 +289,21 @@ Static HTML from `src/pages/index.astro` and its components in
 `src/scripts/site.ts` (~3KB, inlined by Astro), and it adds four things: the
 theme toggle, the scrollspy, the reading-progress bar, and reveal-on-scroll.
 
+It is set like a document, not like a dashboard: hairline rules instead of
+cards, a near-monochrome warm palette with one accent (the CV's own ink), and a
+display serif used for exactly two things - the name and the section titles.
+The full brief is at the top of `src/styles/site.css`.
+
 | Concern | How it is handled |
 |---|---|
+| Content | Every word comes from `resume.js`, which holds the CV and nothing else. No tagline, no headline numbers, no copy written for the web |
 | Completeness | Every section is server-rendered. `check_view.py` asserts one rendered block per record, section by section, against `resume.js` |
 | No-JS | The page is finished before any script runs. The reveal animation's start state is behind `html[data-anim="on"]`, set by an inline script and claimed by `site.ts`; a 2.5s timer removes it if the module never arrives (trap B4.14) |
 | Reduced motion | `prefers-reduced-motion: reduce` makes the page static and skips the animation flag entirely |
 | Themes | Light and dark; light reuses the CV's own ink (`#16437e`). The choice is stored, and the page follows the OS until the visitor overrides it. Applied before first paint, so there is no flash |
 | Links | Every off-site link is `target="_blank" rel="noopener"`, the same rule the PDF's link annotations follow |
 | The PDF | Linked from the header, the hero and the footer; it opens in a new tab and the browser's viewer takes over |
-| Sections | `src/lib/sections.ts` is the one list feeding the nav, the scrollspy and the heading numbers. An empty section drops out of all three at once |
+| Sections | `src/lib/sections.ts` is the one list feeding the nav and the scrollspy, and it must stay in the order `index.astro` renders them (trap B4.19). An empty section drops out of both at once |
 
 `site.css` styles this page only. It never runs paged.js, so unlike `resume.css`
 it is free to use `@media` (trap B4.1 is a paged.js behaviour). The two
@@ -419,6 +435,25 @@ of the new page.
     measurement taken straight after `scrollTo()` reads a position in transit -
     which is why `check_view.py` scrolls with `behavior: 'instant'` everywhere.
     Mind this in any future automation against `/`.
+19. **A scrollspy that scans "the last section above the line" needs its list in
+    document order.** Reordering two sections in `index.astro` without
+    reordering `sections.ts` did not break the nav links - every one still
+    scrolled to the right place - it just quietly highlighted the neighbouring
+    section instead. `site.ts` now sorts its targets with
+    `compareDocumentPosition`, so the scan cannot be fed a wrong order, and
+    `check_view.py` asserts the nav lists the sections in page order so the
+    reading order stays deliberate rather than accidental.
+20. **Paged.js needs animation frames, and Chrome's new headless mode may never
+    produce one.** `build-pdf.mjs` started timing out on every run: paged.js
+    moved the content into its template, created `.pagedjs_pages`, emitted zero
+    sheets and raised nothing. The chunker advances one frame at a time, and
+    measured on this machine the default puppeteer headless ran **0
+    requestAnimationFrame callbacks in two seconds**, against 157 in
+    `chrome-headless-shell`. Nothing about the page was wrong - Playwright
+    paginated the same file fine, which is what made it look like a server or a
+    CSS problem for a while. `puppeteer.launch({ headless: "shell" })` is the
+    fix. If the PDF build ever hangs again with no error, check whether frames
+    are being produced before looking at the document.
 
 ---
 
@@ -430,8 +465,8 @@ of the new page.
 - [ ] Page split mid-section → 12mm margins repeat correctly (padding compensation).
 - [ ] `/print.html` sheet count == `cv.pdf` page count, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
-- [ ] Web resume: nav, theme toggle and the PDF link all work; the page is complete with JavaScript disabled.
-- [ ] `python3 scripts/check_view.py` all green (served `_site`). It covers: **cv.pdf** (section labels, awards and every CV url present as a real link annotation, `i / N` on every page), **/print.html** (no content dropped vs `resume.js`, nothing clipped outside the sheets, no overfilled pages, no orphaned titles - trap B4.9 is invisible to DOM counting alone), and **/** on Chromium + WebKit across six viewports (one rendered block per record in every section, no horizontal overflow, hero clears the fixed header, every external link target=_blank, the PDF and the HTML copy both linked, nothing left invisible by the reveal animation, nav click marks the right section and lands below the header, theme toggle repaints and persists) plus reduced-motion and JavaScript-disabled runs. Screenshots land in `test-artifacts/`.
+- [ ] Web resume: nav, theme toggle and the PDF link all work; the nav lists the sections in page order; the page is complete with JavaScript disabled.
+- [ ] `python3 scripts/check_view.py` all green (served `_site`). It covers: **cv.pdf** (section labels, awards and every CV url present as a real link annotation, `i / N` on every page), **/print.html** (no content dropped vs `resume.js`, nothing clipped outside the sheets, no overfilled pages, no orphaned titles - trap B4.9 is invisible to DOM counting alone), and **/** on Chromium + WebKit across six viewports (one rendered block per record in every section, no horizontal overflow, hero clears the fixed header, every external link target=_blank, the PDF and the HTML copy both linked, nothing left invisible by the reveal animation, nav click marks the right section and lands below the header, nav order matches page order, theme toggle repaints and persists) plus reduced-motion and JavaScript-disabled runs. Screenshots land in `test-artifacts/`.
 - [ ] No `@media` block in `resume.css` (trap B4.1) - `site.css` is exempt.
 - [ ] No px in `resume.css` (px belongs to `site.css` and the boot script), no inline styles, no spacer `<br>`.
 - [ ] After a `pagedjs` upgrade: sheet count unchanged, page numbers stamped, `check-pdf.mjs` green.

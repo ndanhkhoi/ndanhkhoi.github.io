@@ -178,12 +178,12 @@ def check_print_page(browser, pdf):
 # One selector per section, so a section that silently rendered nothing is a
 # failure with a name rather than a smaller total.
 SECTION_SELECTORS = {
-    "experience": "#experience .timeline__item",
-    "projects": "#projects .projects > article",
-    "skills": "#skills .skills > article",
-    "writing": "#writing .projects > article",
-    "awards": "#awards .award",
-    "education": "#education .timeline__item",
+    "experience": "#experience .entry",
+    "projects": "#projects .entry",
+    "skills": "#skills .skills > div",
+    "writing": "#writing .entry",
+    "awards": "#awards .awards > li",
+    "education": "#education .entry",
 }
 
 WEB_METRICS_JS = """
@@ -216,6 +216,16 @@ WEB_METRICS_JS = """
     revealCount: document.querySelectorAll('.reveal').length,
     navTargets: navLinks.map(a => a.dataset.navFor),
     navResolves: navLinks.every(a => document.getElementById(a.dataset.navFor)),
+    /* A nav that lists the sections in a different order than the page shows
+       them reads as wrong, and the scrollspy's "last one above the line" scan
+       depends on knowing which order is real. */
+    navInDocumentOrder: (() => {
+      const tops = navLinks
+        .map(a => document.getElementById(a.dataset.navFor))
+        .filter(Boolean)
+        .map(el => el.getBoundingClientRect().top + scrollY);
+      return tops.every((t, i) => i === 0 || t >= tops[i - 1]);
+    })(),
     activeNav: (document.querySelector('[data-nav-for][aria-current="true"]') || {}).dataset,
     /* Every off-site link opens in a new tab - a project-wide rule that also
        holds inside cv.pdf (checked there as link annotations). */
@@ -295,6 +305,8 @@ def check_web(browser, name, *, device=None, viewport=None):
           f"scrollWidth={m['scrollWidth']} clientWidth={m['clientWidth']} {m['overflowing']}")
     check("script owns the animations", m["animOwned"] is True)
     check("nav links all resolve to a section", m["navResolves"] is True, str(m["navTargets"]))
+    check("nav lists the sections in page order", m["navInDocumentOrder"] is True,
+          str(m["navTargets"]))
     check("every external link opens in a new tab", not m["linksNotBlank"], str(m["linksNotBlank"]))
     check("the CV pdf is linked and opens in a new tab",
           len(m["pdfLinks"]) >= 1 and all(l["target"] == "_blank" for l in m["pdfLinks"]),
@@ -304,7 +316,7 @@ def check_web(browser, name, *, device=None, viewport=None):
     # Every URL the CV carries must be reachable from the page too, otherwise
     # the web rendering quietly drops a link the PDF has.
     found = {u.rstrip("/") for u in m["externalLinks"]}
-    missing = [u for u in EXPECTED["urls"] + EXPECTED["webLinks"]
+    missing = [u for u in EXPECTED["urls"]
                if u.startswith("http") and u.rstrip("/") not in found]
     check("every CV url is on the page", not missing, str(missing))
 
@@ -336,7 +348,7 @@ def check_nav_and_theme(browser):
 
     # Clicking a nav link must land in that section AND mark it current: the
     # anchor offset and the scrollspy line are two numbers that have to agree.
-    for section in ("projects", "awards"):
+    for section in ("skills", "awards"):
         page.click(f'[data-nav-for="{section}"]')
         page.wait_for_timeout(1200)
         current = page.evaluate(

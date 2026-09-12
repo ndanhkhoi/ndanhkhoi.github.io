@@ -53,13 +53,6 @@ export interface Language {
   note?: string;
 }
 
-/** Web-only framing - never rendered into the A4 document or cv.pdf. */
-export interface WebExtras {
-  tagline: string;
-  stats: { value: string; label: string }[];
-  links: { label: string; href: string }[];
-}
-
 export interface Resume {
   meta: { name: string; jobTitle: string; contacts: Contact[] };
   labels: Record<
@@ -82,7 +75,6 @@ export interface Resume {
   writing: Writing[];
   awards: Award[];
   skills: SkillGroup[];
-  web: WebExtras;
   languages: Language[];
   interests: string[];
 }

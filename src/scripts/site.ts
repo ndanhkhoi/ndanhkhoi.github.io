@@ -33,7 +33,7 @@ function currentTheme(): Theme {
 function applyTheme(theme: Theme) {
   html.dataset.theme = theme;
   /* Keep the browser chrome (mobile address bar) in step with the page */
-  if (themeColor) themeColor.content = theme === "dark" ? "#0a0e16" : "#f6f8fc";
+  if (themeColor) themeColor.content = theme === "dark" ? "#0d0d0f" : "#fbfaf8";
 }
 
 document.getElementById("theme-toggle")?.addEventListener("click", () => {
@@ -64,7 +64,14 @@ const progress = document.getElementById("progress");
 const navLinks = [...document.querySelectorAll<HTMLAnchorElement>("[data-nav-for]")];
 const targets = navLinks
   .map((link) => ({ link, section: document.getElementById(link.dataset.navFor as string) }))
-  .filter((t): t is { link: HTMLAnchorElement; section: HTMLElement } => !!t.section);
+  .filter((t): t is { link: HTMLAnchorElement; section: HTMLElement } => !!t.section)
+  /* Sorted by where the sections actually are, not by the order the nav lists
+     them: the "last one above the line" scan below is only correct on a list in
+     document order, and a nav that ever disagrees would otherwise highlight a
+     neighbouring section instead of failing visibly. */
+  .sort((a, b) =>
+    a.section.compareDocumentPosition(b.section) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  );
 
 let activeId = "";
 
@@ -153,20 +160,4 @@ if (reduceMotion || !("IntersectionObserver" in window)) {
 
   /* Anything already on screen at load animates immediately - the observer
      fires for those on its first pass, so nothing extra is needed here. */
-}
-
-/* ------------------------------------------------------------ card glow */
-
-if (!reduceMotion && matchMedia("(hover: hover) and (pointer: fine)").matches) {
-  for (const card of document.querySelectorAll<HTMLElement>(".card--glow")) {
-    card.addEventListener(
-      "pointermove",
-      (event) => {
-        const rect = card.getBoundingClientRect();
-        card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
-        card.style.setProperty("--my", `${event.clientY - rect.top}px`);
-      },
-      { passive: true }
-    );
-  }
 }

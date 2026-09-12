@@ -1,30 +1,20 @@
 ---
-/* Fixed header: identity, section nav, theme toggle, and the one action that
-   matters - the PDF. Below 900px the nav steps aside (the page is short enough
-   to scroll) and only the brand and the actions remain.
+/* Fixed header: quiet at the top of the page, then a solid bar carrying the
+   name, the section nav and the PDF once anything scrolls under it.
 
-   The reading-progress bar and the aria-current state on the links are set by
-   src/scripts/site.ts; with no JS the header is still a working set of anchor
-   links, which is the point. */
+   The stuck state, the reading-progress line and the aria-current on the links
+   are all set by src/scripts/site.ts; with no JS this is still a working set of
+   anchor links and a link to the PDF, which is the point. */
 import resume from "../../data/resume.js";
 import { sections } from "../../lib/sections";
 import { titleCase } from "../../lib/text";
 import Icon from "./Icon.astro";
 
 const displayName = titleCase(resume.meta.name);
-const initials = resume.meta.name
-  .split(/\s+/)
-  .filter(Boolean)
-  .slice(0, 2)
-  .map((w) => w[0])
-  .join("");
 ---
 <header class="site-header" id="site-header">
   <div class="site-header__inner">
-    <a class="brand" href="#top">
-      <span class="brand__mark" aria-hidden="true">{initials}</span>
-      <span class="brand__text">{displayName}</span>
-    </a>
+    <a class="brand" href="#top">{displayName}</a>
 
     <nav class="site-nav" aria-label="Sections">
       <ul class="site-nav__list">
@@ -45,9 +35,9 @@ const initials = resume.meta.name
         <Icon name="sun" class="theme-toggle__icon theme-toggle__icon--sun" />
       </button>
 
-      <a class="btn btn--primary" id="open-pdf" href="/cv.pdf" target="_blank" rel="noopener">
+      <a class="btn btn--quiet" id="open-pdf" href="/cv.pdf" target="_blank" rel="noopener">
         <Icon name="file" />
-        <span>CV (PDF)</span>
+        <span>CV</span>
       </a>
     </div>
   </div>

@@ -4,8 +4,10 @@
 
 Personal CV rendered two ways from one data file, statically built with **Astro**:
 
-- `/` - a modern, responsive, animated **web resume** (server-rendered HTML, one
-  small enhancement script, no client framework)
+- `/` - the **web resume**: responsive, themed and animated, but set like a
+  document rather than a dashboard - hairline rules, no cards, a display serif
+  for the name and the section titles, Inter for everything else
+  (the design brief is at the top of `src/styles/site.css`)
 - `/cv.pdf` - the **A4 document**, paginated by paged.js and printed by headless
   Chromium at build time. Every download button opens this file in a new tab;
   the browser's own PDF viewer takes it from there.
@@ -36,9 +38,9 @@ src/data/resume.js
 - `src/components/web/` - the web resume's sections; `src/components/ContactIcon.astro` is shared by both
 - `src/lib/` - `autolink.ts` (bare URLs → links, used by both renderings), `sections.ts` (which sections exist, in page order), `text.ts`
 - `src/styles/resume.css` - A4 document styles (follows the A4 spec below)
-- `src/styles/site.css` - web resume styles: tokens, themes, motion. Loaded ONLY by `/`
+- `src/styles/site.css` - web resume styles: the design brief, tokens, themes, motion. Loaded ONLY by `/`
 - `src/scripts/site.ts` - theme toggle, scrollspy, reading progress, reveal-on-scroll. Every line of it optional
-- `scripts/prepare-assets.mjs` - fills the generated `public/` with the self-hosted paged.js + Inter files; runs before dev and build
+- `scripts/prepare-assets.mjs` - fills the generated `public/` with the self-hosted paged.js and font files, and builds `/fonts/fonts.css`; runs before dev and build
 - `scripts/build-pdf.mjs` - generates `_site/cv.pdf` from `/print.html` with headless Chromium (puppeteer)
 - `scripts/pdf-facts.mjs` - reads back what `cv.pdf` contains (text, links) as JSON, for the checks
 - `scripts/check-pdf.mjs` - asserts `cv.pdf` still carries everything `resume.js` says (labels, awards, page numbers, links); the deploy workflow gates on it and `check_view.py` reuses its `--expect` output
@@ -67,11 +69,16 @@ src/data/resume.js
   sheet and the PDF, still in the DOM (spec Part B, trap B4.9). Layout rules
   belong in `resume.css`, which paged.js reads before it starts.
 - The `.page` padding (12mm) must match `PAGE_PADDING_MM` in the boot script - change both or neither.
-- **Paged.js and Inter self-hosted**: npm `pagedjs` / `@fontsource/inter`,
-  copied into the generated `public/` by `scripts/prepare-assets.mjs`. Do NOT use
-  a CDN. `public/` is gitignored - never commit anything into it by hand.
-  `pdfjs-dist` stays a devDependency: `pdf-facts.mjs` reads the built PDF back
-  with it, and nothing ships it to a visitor.
+- **Paged.js and both typefaces self-hosted**: npm `pagedjs`,
+  `@fontsource/inter` and `@fontsource/instrument-serif`, copied into the
+  generated `public/` by `scripts/prepare-assets.mjs`, which emits one
+  `/fonts/fonts.css` for both pages. Do NOT use a CDN. `public/` is gitignored -
+  never commit anything into it by hand. `pdfjs-dist` stays a devDependency:
+  `pdf-facts.mjs` reads the built PDF back with it, and nothing ships it to a
+  visitor.
+- **Instrument Serif is a display face**: the name and the section titles, and
+  nothing else. It ships one weight, which is the point - never ask it for a
+  bold, and never set body text in it.
 - **No `—` (em dash) characters** in any displayed content (web + PDF) - seen as
   an AI tell, the project owner doesn't want them. Use a plain `-`.
 - **Links always open in a new tab**: every off-site `<a>`, in both renderings
@@ -80,15 +87,18 @@ src/data/resume.js
 - URLs inside content (bullets, summary) auto-link via `src/lib/autolink.ts`
   (used with `set:html`). In the PDF they become real link annotations, which
   `check-pdf.mjs` asserts.
-- **`resume.web` is web-only** (tagline, stats, profile links). It never reaches
-  the A4 document, and `check-pdf.mjs` skips it when collecting the URLs cv.pdf
-  must carry. Everything else in `resume.js` feeds both renderings.
+- **No copy outside the CV.** Every word on the web resume comes from
+  `resume.js`, which contains the CV and nothing else - no tagline, no headline
+  statistics, no marketing sentence written for the web. If a claim is not on
+  the paper CV, it does not belong on the site.
 - **The web resume must be complete before any script runs.** The reveal
   animation's start state applies only under `html[data-anim="on"]`, which the
   inline script in `index.astro` sets and `site.ts` claims; if the script never
   arrives, a 2.5s timer removes the flag. Never move that start state into a
   plain CSS rule - that is how an animation ends up hiding the CV.
 - Content edits: touch only `src/data/resume.js`, don't modify the components for each update.
+- `src/lib/sections.ts` must list the sections in the order `src/pages/index.astro`
+  renders them: the nav reads wrong otherwise, and `check_view.py` fails on it.
 
 ## Useful commands
 

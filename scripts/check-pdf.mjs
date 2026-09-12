@@ -4,7 +4,7 @@ import { readPdfFacts, DEFAULT_PDF } from "./pdf-facts.mjs";
 
 /* Does _site/cv.pdf still say everything src/data/resume.js says?
  *
- * cv.pdf IS the site - the homepage renders this exact file - so a build that
+ * cv.pdf is what every download button on the site opens, so a build that
  * paginated a section away produces a perfectly valid PDF that is simply
  * missing part of the CV (spec Part B, traps B4.7/B4.9). Page count alone does
  * not catch that, which is why the deploy workflow gates on this script.
@@ -33,10 +33,8 @@ export function expectedFromResume(r = resume) {
   r.meta.contacts.forEach((c) => c.href && urls.add(c.href));
   r.projects.forEach((p) => p.link && urls.add(p.link));
   /* plus every URL written inside the content - the autolink filter turns each
-     one into a real PDF link annotation. `web` is skipped: it is the web
-     resume's own framing (profile links, stats) and never reaches the paper. */
-  const { web, ...paper } = r;
-  JSON.stringify(paper).replace(/https?:\/\/[^\s"'<>\\]+/g, (u) => urls.add(u));
+     one into a real PDF link annotation */
+  JSON.stringify(r).replace(/https?:\/\/[^\s"'<>\\]+/g, (u) => urls.add(u));
 
   return {
     awards: r.awards.length,
@@ -56,8 +54,7 @@ export function expectedFromResume(r = resume) {
       writing: r.writing.length,
       awards: r.awards.length,
       education: r.education.length
-    },
-    webLinks: r.web.links.map((l) => l.href)
+    }
   };
 }
 

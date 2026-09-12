@@ -3,7 +3,8 @@
  *
  * One source, three renderings: the web resume (/), the A4 print source
  * (/print.html) and cv.pdf, which is printed from that source. Everything below
- * feeds all three, except `web`, which is web-only (see its own note).
+ * feeds all three - there is no web-only copy anywhere. If a sentence is not on
+ * the CV, it does not belong on the site either.
  *
  * Conventions:
  * - Any section left empty ([] or "") self-hides from both pages.
@@ -205,32 +206,6 @@ const resume = {
       ]
     }
   ],
-
-  /* ---------------------------------------------------------------- web only
-     Rendered by the web resume (/) and by nothing else - the A4 document and
-     cv.pdf ignore this block entirely, and scripts/check-pdf.mjs skips it when
-     collecting the URLs the PDF must carry. Keep CV facts above; this is only
-     the framing the paper version has no room for. */
-  web: {
-    tagline:
-      "I build the backend systems that keep 4,000+ Vietnamese hospitals running - " +
-      "and I lead the people who build them.",
-    /* Numbers already proven by the entries above; each one restates a highlight. */
-    stats: [
-      { value: "6+", label: "Years building JVM backends" },
-      { value: "4,000+", label: "Hospitals on the platform" },
-      { value: "1,000+", label: "Concurrent users after tuning" },
-      { value: "30,000+", label: "Reads on technical writing" }
-    ],
-    /* Public profiles, shown in the site header and footer. Web-only on
-       purpose: the paper CV lists the contact line instead, so these are not
-       part of what scripts/check-pdf.mjs requires cv.pdf to carry. */
-    links: [
-      { label: "GitHub", href: "https://github.com/ndanhkhoi" },
-      { label: "Viblo", href: "https://viblo.asia/u/ndanhkhoi" },
-      { label: "Website", href: "https://khoinda.io.vn/" }
-    ]
-  },
 
   languages: [],
 

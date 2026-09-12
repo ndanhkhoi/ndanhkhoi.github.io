@@ -8,7 +8,8 @@
  * never allowed to carry markup of its own.
  *
  * target="_blank" rel="noopener" is a project-wide rule - every link on this
- * site opens in a new tab.
+ * site opens in a new tab. class="link" is the web resume's running-text link
+ * style; the A4 document ignores it and styles these anchors from resume.css.
  */
 
 const ESCAPES: Record<string, string> = {
@@ -27,6 +28,6 @@ export function autolink(value: string): string {
   if (!value) return "";
   return escapeHtml(value).replace(
     /(https?:\/\/[^\s"'<>]+)/g,
-    (url) => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`
+    (url) => `<a class="link" href="${url}" target="_blank" rel="noopener">${url}</a>`
   );
 }

@@ -4,6 +4,10 @@
  * Server-rendered from src/data/resume.js, the same file /print.html and
  * therefore cv.pdf are built from. No client framework: the only JavaScript
  * the page ships is src/scripts/site.ts, and everything it does is optional.
+ *
+ * Layout note: every section is a list of rows separated by hairline rules.
+ * There is deliberately not a card on this page - it is a CV, so it is set like
+ * a document (see the brief at the top of src/styles/site.css).
  */
 import resume from "../data/resume.js";
 import { autolink } from "../lib/autolink";
@@ -16,15 +20,11 @@ import Bullets from "../components/web/Bullets.astro";
 import Icon from "../components/web/Icon.astro";
 import "../styles/site.css";
 
-const { meta, web } = resume;
+const { meta } = resume;
 const title = `${meta.name} - ${meta.jobTitle}`;
 const description = resume.summary || `${meta.name} - CV`;
 const mail = meta.contacts.find((c) => c.icon === "mail");
-
-/* Some skill groups are keyword lists ("Java", "Redis"), others are whole
-   sentences. Chips suit the first and mangle the second, so the shape of the
-   data picks the rendering. */
-const isKeywordList = (items: string[]) => items.every((i) => i.length <= 34);
+const site = "https://ndanhkhoi.github.io/";
 
 /* Structured data: a recruiter's tooling (and Google) reads this before it
    reads the layout. Same facts as the page, in the format they expect. */
@@ -34,11 +34,13 @@ const personLd = {
   name: meta.name,
   jobTitle: meta.jobTitle,
   description: resume.summary,
-  url: "https://ndanhkhoi.github.io/",
+  url: site,
   email: mail?.href?.replace(/^mailto:/, ""),
   address: meta.contacts.find((c) => c.icon === "location")?.text,
-  sameAs: web.links.map((l) => l.href),
-  worksFor: resume.experience[0] ? { "@type": "Organization", name: resume.experience[0].company } : undefined,
+  sameAs: meta.contacts.filter((c) => c.href?.startsWith("http")).map((c) => c.href),
+  worksFor: resume.experience[0]
+    ? { "@type": "Organization", name: resume.experience[0].company }
+    : undefined,
   alumniOf: resume.education[0]
     ? { "@type": "EducationalOrganization", name: resume.education[0].school }
     : undefined,
@@ -52,23 +54,23 @@ const personLd = {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{title}</title>
   <meta name="description" content={description} />
-  <meta name="theme-color" content="#f6f8fc" />
-  <link rel="canonical" href="https://ndanhkhoi.github.io/" />
+  <meta name="theme-color" content="#fbfaf8" />
+  <link rel="canonical" href={site} />
 
   <meta property="og:type" content="profile" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
-  <meta property="og:url" content="https://ndanhkhoi.github.io/" />
+  <meta property="og:url" content={site} />
   <meta name="twitter:card" content="summary" />
 
-  <link rel="stylesheet" href="/fonts/inter.css" />
+  <link rel="stylesheet" href="/fonts/fonts.css" />
 
   {/* Before first paint, so the page never flashes the wrong theme and the
       reveal animations never flash their finished state.
 
       The timer is the safety net for the animation flag: if site.ts is blocked,
       404s or throws before it claims the page, the start state (opacity: 0)
-      would otherwise hide the CV for good. */}
+      would otherwise hide the CV for good (spec trap B4.14). */}
   <script is:inline>
     (function () {
       var el = document.documentElement;
@@ -91,10 +93,7 @@ const personLd = {
 
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <div class="backdrop" aria-hidden="true">
-    <div class="backdrop__glow backdrop__glow--a"></div>
-    <div class="backdrop__glow backdrop__glow--b"></div>
-  </div>
+  <div class="grain" aria-hidden="true"></div>
 
   <SiteHeader />
 
@@ -103,20 +102,21 @@ const personLd = {
 
     {resume.summary && (
       <Section meta={sectionById("about")}>
-        <p class="lead reveal" style="--i: 0" set:html={autolink(resume.summary)} />
+        <p class="prose" set:html={autolink(resume.summary)} />
       </Section>
     )}
 
     {resume.experience.length > 0 && (
       <Section meta={sectionById("experience")}>
-        <div class="timeline">
-          {resume.experience.map((e, i) => (
-            <article class="timeline__item card card--lift card--glow reveal" style={`--i: ${i}`}>
-              <div class="entry-head">
-                <h3 class="entry-title">
-                  {e.position} <span class="entry-org">· {[e.company, e.location].filter(Boolean).join(" · ")}</span>
+        <div class="entries">
+          {resume.experience.map((e) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
+                  {e.position}
+                  <span class="entry__org">, {[e.company, e.location].filter(Boolean).join(" · ")}</span>
                 </h3>
-                <span class="entry-period">{e.period}</span>
+                <span class="entry__period tnum">{e.period}</span>
               </div>
               <Bullets items={e.highlights} />
             </article>
@@ -127,19 +127,19 @@ const personLd = {
 
     {resume.projects.length > 0 && (
       <Section meta={sectionById("projects")}>
-        <div class="projects">
-          {resume.projects.map((p, i) => (
-            <article class="card card--lift card--glow reveal" style={`--i: ${i}`}>
-              <h3 class="entry-title">{p.name}</h3>
-              {/* Role and dates share one meta line: in a grid column this
-                  narrow, a period pushed to the right edge just wraps. */}
-              <p class="entry-meta">
-                {p.role && <span class="project__role">{p.role}</span>}
-                <span class="entry-period">{p.period}</span>
-              </p>
+        <div class="entries">
+          {resume.projects.map((p) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
+                  {p.name}
+                  {p.role && <span class="entry__org">, {p.role}</span>}
+                </h3>
+                <span class="entry__period tnum">{p.period}</span>
+              </div>
               <Bullets items={p.highlights} />
               {p.link && (
-                <a class="project__link" href={p.link} target="_blank" rel="noopener">
+                <a class="entry__link" href={p.link} target="_blank" rel="noopener">
                   <span>{p.link.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
                   <Icon name="external" />
                 </a>
@@ -150,33 +150,14 @@ const personLd = {
       </Section>
     )}
 
-    {resume.skills.length > 0 && (
-      <Section meta={sectionById("skills")}>
-        <div class="skills">
-          {resume.skills.map((s, i) => (
-            <article class="card card--lift reveal" style={`--i: ${i}`}>
-              <h3 class="skill__label">{s.label}</h3>
-              {isKeywordList(s.items) ? (
-                <ul class="tags">
-                  {s.items.map((item) => <li class="tag">{item}</li>)}
-                </ul>
-              ) : (
-                <ul class="bullets">
-                  {s.items.map((item) => <li>{item}</li>)}
-                </ul>
-              )}
-            </article>
-          ))}
-        </div>
-      </Section>
-    )}
-
     {resume.writing.length > 0 && (
       <Section meta={sectionById("writing")}>
-        <div class="projects">
-          {resume.writing.map((w, i) => (
-            <article class="card card--lift card--glow reveal" style={`--i: ${i}`}>
-              <h3 class="entry-title">{w.title}</h3>
+        <div class="entries">
+          {resume.writing.map((w) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">{w.title}</h3>
+              </div>
               <Bullets items={w.highlights} />
             </article>
           ))}
@@ -184,14 +165,30 @@ const personLd = {
       </Section>
     )}
 
+    {resume.skills.length > 0 && (
+      <Section meta={sectionById("skills")}>
+        <dl class="skills">
+          {resume.skills.map((s) => (
+            <div>
+              <dt class="label">{s.label}</dt>
+              {/* One line of keywords per group. The separator is its own
+                  element so it can be quieter than the words it divides. */}
+              <dd>{s.items.map((item, i) => (
+                <>{i > 0 && <i aria-hidden="true">·</i>}{item}</>
+              ))}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+    )}
+
     {resume.awards.length > 0 && (
       <Section meta={sectionById("awards")}>
         <ul class="awards">
-          {resume.awards.map((a, i) => (
-            <li class="award card card--lift reveal" style={`--i: ${i}`}>
-              <span class="award__badge" aria-hidden="true"><Icon name="award" /></span>
-              <span class="award__name">{a.name}</span>
-              {a.extra && <span class="award__year">{a.extra}</span>}
+          {resume.awards.map((a) => (
+            <li>
+              <span>{a.name}</span>
+              {a.extra && <span class="award__year tnum">{a.extra}</span>}
             </li>
           ))}
         </ul>
@@ -200,17 +197,17 @@ const personLd = {
 
     {resume.education.length > 0 && (
       <Section meta={sectionById("education")}>
-        <div class="timeline">
-          {resume.education.map((ed, i) => (
-            <article class="timeline__item card card--lift reveal" style={`--i: ${i}`}>
-              <div class="entry-head">
-                <h3 class="entry-title">
+        <div class="entries">
+          {resume.education.map((ed) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
                   {ed.degree || ed.school}
-                  {ed.degree && ed.school && <span class="entry-org"> · {ed.school}</span>}
+                  {ed.degree && ed.school && <span class="entry__org">, {ed.school}</span>}
                 </h3>
-                <span class="entry-period">{ed.period}</span>
+                <span class="entry__period tnum">{ed.period}</span>
               </div>
-              {ed.detail && <p class="entry-note" set:html={autolink(ed.detail)} />}
+              {ed.detail && <p class="entry__note" set:html={autolink(ed.detail)} />}
             </article>
           ))}
         </div>

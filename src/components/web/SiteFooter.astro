@@ -1,22 +1,26 @@
 ---
-/* Closing block: the profile links, the two other forms of this CV, and a
-   plain statement of how the page is made. /print.html is listed on purpose -
-   it is the no-JavaScript, fully selectable copy of the document. */
+/* Closing block: the same contact links the CV carries, the two other forms of
+   this document, and a plain statement of how the page is made. /print.html is
+   listed on purpose - it is the no-JavaScript, fully selectable copy. */
 import resume from "../../data/resume.js";
+import { titleCase } from "../../lib/text";
 
-const { meta, web } = resume;
-const mail = meta.contacts.find((c) => c.icon === "mail");
+const { meta } = resume;
+const links = meta.contacts.filter((c) => c.href);
 ---
 <footer class="site-footer">
   <div class="container">
     <div class="site-footer__inner">
-      <p>© {meta.name} · {meta.jobTitle}</p>
+      <p>{titleCase(meta.name)} · {meta.jobTitle}</p>
 
       <nav class="site-footer__links" aria-label="Elsewhere">
-        {web.links.map((l) => (
-          <a href={l.href} target="_blank" rel="noopener">{l.label}</a>
+        {links.map((c) => (
+          <a
+            href={c.href}
+            target={c.href!.startsWith("http") ? "_blank" : null}
+            rel={c.href!.startsWith("http") ? "noopener" : null}
+          >{c.text}</a>
         ))}
-        {mail?.href && <a href={mail.href}>Email</a>}
         <a href="/cv.pdf" target="_blank" rel="noopener">CV (PDF)</a>
         <a href="/print.html">HTML version</a>
       </nav>
