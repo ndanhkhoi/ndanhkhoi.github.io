@@ -159,8 +159,8 @@ Required semantic classes:
 ```text
 .cv-header  .cv-name  .cv-job-title  .cv-contact
 .cv-section  .cv-section-title
-.entry  .entry-head  .entry-title  .entry-sub  .entry-period  .entry-highlights
-.skills-grid  .skill-group  .meta-grid  .cert-list
+.entry  .entry-head  .entry-title  .entry-sub  .entry-period  .entry-highlights  .entry-link
+.skills-grid  .skill-group  .meta-grid  .cert-list  .cert-item  .cert-name  .cert-extra
 .section--atomic  .section--flow  .section-opening  .section-start
 .break-page  .text-meta
 ```

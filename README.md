@@ -46,6 +46,18 @@ npm run build   # one-off: _site/ + _site/cv.pdf
 `build` always produces the PDF, because the homepage renders it - HTML without
 a matching `cv.pdf` is a site with nothing to show.
 
+## Checks
+
+```bash
+node scripts/check-pdf.mjs                       # does cv.pdf still say everything resume.js says?
+python3 -m http.server 4173 --directory _site    # then, in another terminal:
+npm run check:view                               # pagination + viewer, Chromium & WebKit
+```
+
+`check-pdf.mjs` is the gate the deploy workflow runs: a build that paginated a
+section away still produces a valid PDF, and page count alone would not notice.
+`check:view` needs `pip install playwright && playwright install chromium webkit`.
+
 ## Print / Download PDF
 
 The toolbar has page navigation, zoom, **print** and **download** on the right.

@@ -31,6 +31,7 @@ src/_data/resume.js + src/_includes/cv-document.njk
 - `src/css/viewer.css` - toolbar + scroll container only; `pdf_viewer.css` from pdfjs-dist styles the pages (screen-only, may use `@media`)
 - `scripts/build-pdf.mjs` - generates `_site/cv.pdf` from `/print.html` with headless Chromium (puppeteer)
 - `scripts/pdf-facts.mjs` - reads back what `cv.pdf` contains (text, links) as JSON, for the checks
+- `scripts/check-pdf.mjs` - asserts `cv.pdf` still carries everything `resume.js` says (labels, awards, page numbers, links); the deploy workflow gates on it and `check_view.py` reuses it
 - `scripts/check_view.py` - Playwright check of all three stages (PDF, print source, viewer on Chromium + WebKit); screenshots in `test-artifacts/` (gitignored)
 - `docs/A4_PRINT_VIEW_SPEC.md` - the project's **single spec** (source of truth):
   Part A = A4 layout design (tokens `--sp-*/--fs-*/--lh-*`, pagination
@@ -79,4 +80,5 @@ src/_data/resume.js + src/_includes/cv-document.njk
 - Dev: `npm run dev` → http://localhost:8080 (rebuilds `cv.pdf` on every change)
 - Build: `npm run build` → `_site/` **and** `_site/cv.pdf` (HTML alone: `npm run build:html`)
 - Deploy: commit + push to `main`, Actions builds to `gh-pages` automatically.
+- PDF content gate: `node scripts/check-pdf.mjs` (what CI runs after the build; exit 0 = `cv.pdf` still matches `resume.js`)
 - Visual check: `npm run build` + serve `_site` (e.g. `python3 -m http.server 4173 --directory _site`) → `npm run check:view` (needs `pip install playwright` + `playwright install chromium webkit`; exit 0 = all green).
