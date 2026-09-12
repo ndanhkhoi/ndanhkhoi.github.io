@@ -7,7 +7,8 @@ build produces them (docs/A4_PRINT_VIEW_SPEC.md):
 1. cv.pdf       - the artifact that ships. Printed from /print.html, it is what
                   visitors read and download, so its own content is asserted
                   directly: page count, section labels, awards, stamped page
-                  numbers, link annotations.
+                  numbers, link annotations. Those assertions live in
+                  scripts/check-pdf.mjs, which the deploy workflow also runs.
 2. /print.html  - the page paged.js paginates. Pagination is the only place
                   content can still be silently dropped or clipped, so the
                   trap checks live here (spec Part B). Chromium only: it is the
@@ -36,7 +37,6 @@ from playwright.sync_api import sync_playwright
 BASE_URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:4173"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ART = ROOT / "test-artifacts"
-A4_CSS_WIDTH = 793.7  # 210mm @ 96dpi - the viewer never renders wider
 A4_RATIO = 297 / 210
 
 failures = []
@@ -53,28 +53,8 @@ def expected_from_resume_js():
 
     Guards against pagination silently DROPPING trailing sections at a page
     boundary (the "Honors & Awards cut off" class of bug)."""
-    out = subprocess.check_output(
-        ["node", "-e",
-         "const r=require(process.argv[1]);"
-         "const keys=['summary','education','experience','projects','writing',"
-         "'awards','skills'];"
-         "const has=k=>k==='summary'?!!r.summary:r[k].length;"
-         "const titles=keys.filter(has).length+"
-         "((r.languages.length||r.interests.length)?1:0);"
-         "const urls=new Set();"
-         "r.meta.contacts.forEach(c=>c.href&&urls.add(c.href));"
-         "r.projects.forEach(p=>p.link&&urls.add(p.link));"
-         "JSON.stringify(r).replace(/https?:\\/\\/[^\\s\"'<>\\\\]+/g,u=>urls.add(u));"
-         "console.log(JSON.stringify({"
-         "awards:r.awards.length,"
-         "skillGroups:r.skills.length,"
-         "entries:r.education.length+r.experience.length+r.projects.length+r.writing.length,"
-         "titles,awardNames:r.awards.map(a=>a.name.slice(0,30)),"
-         "labels:keys.filter(has).map(k=>r.labels[k]),"
-         "urls:[...urls]}))",
-         str(ROOT / "src/_data/resume.js")],
-        text=True)
-    return json.loads(out)
+    return json.loads(subprocess.check_output(
+        ["node", str(ROOT / "scripts/check-pdf.mjs"), "--expect"], text=True))
 
 
 def pdf_facts():
@@ -89,23 +69,18 @@ EXPECTED_COUNTS = {k: EXPECTED[k] for k in ("awards", "skillGroups", "entries", 
 
 # --------------------------------------------------------------- 1. the PDF
 
-def check_pdf(pdf):
+def check_pdf():
+    """Delegated to scripts/check-pdf.mjs - the same assertions the deploy
+    workflow gates on, so CI and this suite can never disagree about what
+    cv.pdf is supposed to contain."""
     print("\n=== cv.pdf (the file the site serves) ===")
-    text = "".join(pdf["text"]).casefold()
-
-    check("pdf has pages", pdf["pages"] >= 1, f"pages={pdf['pages']}")
-    for name in EXPECTED["awardNames"]:
-        check(f"pdf contains award '{name[:24]}'", name.casefold() in text)
-    for label in EXPECTED["labels"]:
-        check(f"pdf contains section label '{label}'", label.casefold() in text)
-
-    missing_numbers = [i + 1 for i, t in enumerate(pdf["text"])
-                       if not t.rstrip().endswith(f"{i + 1} / {pdf['pages']}")]
-    check("every page is numbered 'i / N'", not missing_numbers, f"pages={missing_numbers}")
-
-    found = {u.rstrip("/") for page in pdf["links"] for u in page}
-    missing = [u for u in EXPECTED["urls"] if u.rstrip("/") not in found]
-    check("every CV url is a clickable pdf link", not missing, str(missing))
+    out = subprocess.run(["node", str(ROOT / "scripts/check-pdf.mjs"), "--json"],
+                         capture_output=True, text=True)
+    if not out.stdout.strip():
+        check("cv.pdf readable", False, out.stderr.strip() or "no output")
+        return
+    for r in json.loads(out.stdout):
+        check(r["label"], r["ok"], r["detail"])
 
 
 # --------------------------------------------------------- 2. the print page
@@ -373,7 +348,7 @@ def check_toolbar_controls(browser, pdf):
     page.fill("#pageNumber", str(pdf["pages"]))
     page.press("#pageNumber", "Enter")
     page.wait_for_timeout(600)
-    check(f"typing a page number jumps to it",
+    check("typing a page number jumps to it",
           page.evaluate("document.querySelector('.pdfViewer').parentElement.scrollTop > 0"))
 
     scale_before = page.evaluate("parseFloat(getComputedStyle(document.querySelector('.pdfViewer .page')).width)")
@@ -418,6 +393,18 @@ def check_no_js_fallback(browser):
     check("no-JS: CV document rendered", page.locator(".cv-name").count() >= 1)
     check("no-JS: spinner hidden", not page.is_visible("#pv-status"))
     check("no-JS: viewer chrome hidden", not page.is_visible(".pv-toolbar"))
+    # viewer.css pins html/body to the viewport (height:100%, overflow:hidden) so
+    # the sheets scroll inside #viewerContainer. With no JS the CV itself is the
+    # document: if that lock survives, the reader gets one screenful and no way
+    # to reach the rest of the CV.
+    scroll = page.evaluate(
+        """() => {
+          const de = document.documentElement;
+          window.scrollTo(0, 1e6);
+          return {reach: de.scrollHeight - de.clientHeight, y: window.scrollY};
+        }""")
+    check("no-JS: the whole CV is reachable by scrolling",
+          scroll["reach"] > 0 and scroll["y"] > 0, str(scroll))
     page.screenshot(path=str(ART / "iphone14_nojs.png"), full_page=True)
     ctx.close()
 
@@ -428,7 +415,7 @@ browser_devices = {}
 def main():
     ART.mkdir(exist_ok=True)
     pdf = pdf_facts()
-    check_pdf(pdf)
+    check_pdf()
 
     with sync_playwright() as p:
         browser_devices.update({k: p.devices[k] for k in

@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Deploy force-pushes an orphan gh-pages branch: two overlapping runs would race
+# that rewrite. Queue them, and never cancel a deploy half-way through.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
@@ -25,12 +31,14 @@ jobs:
           npm run build
 
       # cv.pdf is the site: the homepage renders it with pdf.js. A build that
-      # produced HTML but no PDF would deploy a page with nothing to show, so
-      # fail here rather than publish it.
-      - name: Verify the PDF was produced
+      # produced HTML but no PDF would deploy a page with nothing to show - and
+      # one that paginated a section away would deploy a valid PDF that is
+      # missing part of the CV. check-pdf.mjs asserts the file still says
+      # everything src/_data/resume.js says, so neither can reach gh-pages.
+      - name: Verify cv.pdf matches the CV data
         run: |
           test -s _site/cv.pdf
-          node scripts/pdf-facts.mjs | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); if(!d.pages){console.error('cv.pdf has no pages');process.exit(1);} console.log('cv.pdf: '+d.pages+' pages, '+d.links.flat().length+' links');"
+          node scripts/check-pdf.mjs
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
