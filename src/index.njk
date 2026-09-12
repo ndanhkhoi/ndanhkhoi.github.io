@@ -197,7 +197,8 @@
     + "@media print {"
     + " html, body { background: #fff; padding: 0 !important; }"
     + " .pagedjs_page { box-shadow: none; margin: 0; }"
-    + " .pagedjs_pages, .page { zoom: 1 !important; }" /* reset mobile fit-width when printing */
+    + " .pagedjs_pages, .page { zoom: 1 !important; opacity: 1 !important; }" /* reset mobile fit-width + loading state when printing */
+    + " body::after { content: none !important; }" /* spinner off even if printed mid-load */
     + "}";
 
   var FALLBACK_CSS = ""
@@ -206,9 +207,14 @@
     + ".page { min-height: 297mm; margin: 0 auto 10mm; border: 0.5pt solid #c8c8c8;"
     + " box-shadow: 0 1mm 5mm rgba(0,0,0,0.16); }";
 
-  /* PDF button (dropdown: Download PDF / Print PDF) - screen only, hidden when printing */
+  /* PDF button (dropdown: Download PDF / Print PDF) - screen only, hidden when printing.
+     Injected at reveal time: kills the loading spinner and fades the button in
+     AFTER the sheets' staggered fade (last thing to appear). */
   var ACTIONS_CSS = ""
-    + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999; }"
+    + "body::after { content: none !important; }" /* spinner off once revealed */
+    + "@keyframes cv-menu-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }"
+    + ".pdf-menu { position: fixed; right: 20px; bottom: 20px; z-index: 9999;"
+    + " animation: cv-menu-in 0.3s ease 0.55s backwards; }"
     + ".pdf-menu__toggle { display: inline-flex; align-items: center; gap: 8px; border: 0;"
     + " border-radius: 9999px; padding: 13px 18px; background: #16437e; color: #fff;"
     + " font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;"
@@ -235,6 +241,7 @@
     + " .pdf-menu { right: 12px; bottom: 12px; }"
     + " .pdf-menu__list { min-width: 200px; }"
     + "}"
+    + "@media (prefers-reduced-motion: reduce) { .pdf-menu { animation: none; } }"
     + "@media print { .pdf-menu { display: none !important; } }";
 
   var SVG_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
@@ -286,20 +293,50 @@
   function revealContent() {
     var s = document.querySelector("style[data-paged-backdrop-css]");
     if (s) s.remove();
-    /* clear the inline hide - on ALL .page elements: paged.js clones .page
-       across splits and each clone carries the inline style */
-    var sheets = document.querySelectorAll(".page");
-    for (var i = 0; i < sheets.length; i++) sheets[i].style.visibility = "";
+    var reduced = window.matchMedia
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var i, sheets = document.querySelectorAll(".page");
+    var wrap = document.querySelector(".pagedjs_pages");
+    if (wrap) {
+      var pages = wrap.querySelectorAll(".pagedjs_page");
+      for (i = 0; i < pages.length; i++) pages[i].style.opacity = "0";
+      /* clear the early inline hide on ALL .page elements - paged.js clones
+         .page across splits and each clone carries the inline style; the
+         sheets' staggered fade controls visibility from here */
+      for (i = 0; i < sheets.length; i++) sheets[i].style.opacity = "";
+      void wrap.offsetHeight; /* flush so the sheets transition from opacity 0 */
+      for (i = 0; i < pages.length; i++) {
+        pages[i].style.transition = reduced ? "none" : "opacity 0.35s ease " + (i * 80) + "ms";
+        pages[i].style.opacity = "1";
+      }
+      wrap.style.opacity = "1"; /* inline beats the backdrop rule cloned into the paged.js blob */
+    } else {
+      /* no pagination (broken vendor) - fade the raw sheet */
+      for (i = 0; i < sheets.length; i++) {
+        sheets[i].style.transition = reduced ? "none" : "opacity 0.35s ease";
+        sheets[i].style.opacity = "1";
+      }
+    }
   }
-  /* Gray backdrop + hidden sheet from the first paint (like a PDF viewer
-     loading). Only the backdrop goes in a style tag - the rest of CSS carries
-     @media print and paged.js flattens @media in styles it processes (spec
-     trap B4.1). The hide is set INLINE: paged.js clones stylesheet rules into
-     its own blob, so a rule-based hide would survive the reveal. Inline also
-     keeps the no-JS print-pure fallback (.page visible) untouched. */
-  ensureStyle("data-paged-backdrop-css", "html, body { background: #525659; }");
+  /* Loading state, from the first paint: gray backdrop + spinner, the whole
+     document invisible until pagination is stable (like a PDF viewer opening a
+     file) - then the sheets fade in staggered and the PDF button arrives last.
+     paged.js CLONES rules of style tags present at DOMContentLoaded into its
+     own blob, so anything hiding the document here must stay overridable
+     afterwards: inline styles for elements (always win over rules) and the
+     late-injected `body::after { content: none !important }` for the spinner.
+     Never put @media in this tag (flattening trap B4.1) - print safety lives
+     in the late CSS. The inline hide keeps the no-JS print-pure fallback
+     (.page visible) untouched. */
+  ensureStyle("data-paged-backdrop-css",
+      "html, body { background: #525659; }"
+    + ".pagedjs_pages { opacity: 0; }"
+    + "body::after { content: \"\"; position: fixed; left: 50%; top: 50%; width: 28px; height: 28px;"
+    + " margin: -14px 0 0 -14px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.22);"
+    + " border-top-color: rgba(255,255,255,0.85); animation: cv-spin 0.8s linear infinite; }"
+    + "@keyframes cv-spin { to { transform: rotate(360deg); } }");
   var earlyPage = document.querySelector(".page");
-  if (earlyPage) earlyPage.style.visibility = "hidden";
+  if (earlyPage) earlyPage.style.opacity = "0";
   window.addEventListener("orientationchange", function () { setTimeout(fitWidth, 60); });
   var fitTimer;
   window.addEventListener("resize", function () {

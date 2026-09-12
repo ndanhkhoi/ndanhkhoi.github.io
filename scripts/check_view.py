@@ -61,6 +61,9 @@ METRICS_JS = """
     pageNumberFontSize: nums.length ? getComputedStyle(nums[0]).fontSize : null,
     menuRect: mr ? { bottom: +mr.bottom.toFixed(1), right: +mr.right.toFixed(1) } : null,
     docHeight: de.scrollHeight,
+    wrapOpacity: wrap ? getComputedStyle(wrap).opacity : null,
+    pageOpacities: pages.map(el => getComputedStyle(el).opacity),
+    spinnerContent: getComputedStyle(document.body, '::after').content,
     contentVisible: (() => {
       const el = document.querySelector('.cv-name, .cv-summary, .entry');
       if (!el) return false;
@@ -82,9 +85,10 @@ def check(label, ok, detail=""):
 
 
 def wait_ready(page):
-    """Wait until the boot script finished: page numbers stamped + menu added."""
+    """Wait until the boot script finished: page numbers stamped + menu added,
+    then let the reveal animations settle (sheets fade ≤0.51s, menu ≤0.85s)."""
     page.wait_for_selector(".pdf-menu", timeout=45000, state="attached")
-    page.wait_for_timeout(500)  # resize debounce (150ms) + settle
+    page.wait_for_timeout(1100)
 
 
 def run_device(browser, name, *, device=None, viewport=None, landscape=False):
@@ -135,6 +139,11 @@ def run_device(browser, name, *, device=None, viewport=None, landscape=False):
           for i in range(m["pageCount"])], str(m["pageNumbers"]))
     check("CV content visible", m["contentVisible"] is True,
           f"contentVisible={m['contentVisible']}")
+    check("sheets fully faded in", all(o == "1" for o in m["pageOpacities"])
+          and m["wrapOpacity"] == "1",
+          f"wrap={m['wrapOpacity']} pages={m['pageOpacities']}")
+    check("loading spinner removed", m["spinnerContent"] == "none",
+          f"spinner={m['spinnerContent']}")
     check("no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
     return page, m
