@@ -104,6 +104,20 @@ const resume = {
 
   projects: [
     {
+      name: "Audi Sai Gon - Dealership Website",
+      role: "Client Project",
+      period: "Apr 2026 - Present",
+      link: "https://audisaigon.vn/",
+      highlights: [
+        "Built and maintain the public website for the Audi dealership network in Vietnam: car catalogue, " +
+          "detail pages with filters, service pages and a blog, all content-first and in Vietnamese",
+        "Stack: Astro 7, TypeScript, Tailwind CSS 4, Cloudflare",
+        "Averages 700k+ requests a month with zero Worker errors and a P90 CPU time of 1 ms per request",
+        "SEO handled at build time: per-page canonical and Open Graph metadata, JSON-LD Vehicle and breadcrumb " +
+          "schema, and a generated sitemap"
+      ]
+    },
+    {
       name: "Moni - Expense Manager Web App",
       role: "Personal Project",
       period: "Aug 2023 - Present",
@@ -161,7 +175,7 @@ const resume = {
 
   skills: [
     { label: "Technical Backend", items: ["Java", "Spring Framework", "Hibernate", "JHipster"] },
-    { label: "Frontend", items: ["HTML", "CSS", "Bootstrap", "Tailwind CSS", "JavaScript", "TypeScript", "ReactJS"] },
+    { label: "Frontend", items: ["HTML", "CSS", "Bootstrap", "Tailwind CSS", "JavaScript", "TypeScript", "ReactJS", "Astro"] },
     { label: "Databases", items: ["MySQL", "Oracle", "PostgreSQL", "MongoDB"] },
     { label: "Caching", items: ["Redis"] },
     { label: "Messaging", items: ["Apache Kafka", "RabbitMQ"] },
@@ -180,7 +194,7 @@ const resume = {
       items: ["Microservice architecture", "Data structures and algorithms", "Database schema design and implementation"]
     },
     { label: "Monitoring & Performance", items: ["Glowroot", "Application Performance Monitoring (APM) tools"] },
-    { label: "DevOps & CI/CD", items: ["Docker", "Portainer", "CI/CD with GitHub Actions", "GitLab CI", "Heroku"] },
+    { label: "DevOps & CI/CD", items: ["Docker", "Portainer", "CI/CD with GitHub Actions", "GitLab CI", "Heroku", "Cloudflare (Pages, Workers)"] },
     {
       label: "AI-assisted development",
       items: [
