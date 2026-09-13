@@ -10,6 +10,9 @@ import { fileURLToPath } from "node:url";
  *
  *   lib/paged.polyfill.js  paginates /print.html, the page cv.pdf is printed from
  *   fonts/*                the two typefaces, below
+ *   portrait.webp          the photograph, from assets/
+ *   favicon.svg            the site's mark, from assets/ - the two files here
+ *                          that are ours rather than a package's
  *
  * A PDF renderer is deliberately NOT here: the site links cv.pdf and lets the
  * browser open it in a tab of its own. pdfjs-dist stays a devDependency only
@@ -17,6 +20,7 @@ import { fileURLToPath } from "node:url";
  */
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PUBLIC = path.join(ROOT, "public");
+const ASSETS = path.join(ROOT, "assets");
 const nm = (...p) => path.join(ROOT, "node_modules", ...p);
 
 /* Inter sets everything on both renderings; 400/700 are what the A4 document
@@ -87,5 +91,27 @@ function copyPagedJs() {
   fs.copyFileSync(src, path.join(out, "paged.polyfill.js"));
 }
 
+/* Our own files. They live in assets/ because public/ is generated and
+   gitignored - these are the only files in public/ with no node_modules copy to
+   fall back on, so losing them would be losing them for good. Both arrive
+   finished (a square, compressed photograph and a hand-drawn mark): nothing to
+   do here but move them. */
+const OURS = [
+  { file: "portrait.webp", missing: "both renderings would show a broken photograph" },
+  { file: "favicon.svg", missing: "every tab would fall back to the browser's blank page icon" },
+];
+
+function copyOurAssets() {
+  fs.mkdirSync(PUBLIC, { recursive: true });
+  for (const { file, missing } of OURS) {
+    const src = path.join(ASSETS, file);
+    if (!fs.existsSync(src)) {
+      throw new Error(`assets/${file} is missing - ${missing}.`);
+    }
+    fs.copyFileSync(src, path.join(PUBLIC, file));
+  }
+  return OURS.length;
+}
+
 copyPagedJs();
-console.log(`public/: paged.js + ${copyFontFiles()} font files ready`);
+console.log(`public/: paged.js + ${copyOurAssets()} of ours + ${copyFontFiles()} font files ready`);

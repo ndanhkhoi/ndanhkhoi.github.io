@@ -19,12 +19,25 @@ const reachable = meta.contacts.filter((c) => c.href);
 ---
 <section class="hero" id="top">
   <div class="container">
-    {place && <span class="label hero__eyebrow reveal">{place.text}</span>}
+    {/* The photograph opens the page, before a word is read. It is decorative
+        in the strict sense - the name says who this is - but a face is the one
+        thing a CV cannot write down, so it gets its own line above the name. */}
+    <img
+      class="hero__portrait reveal"
+      src="/portrait.webp"
+      width="512"
+      height="512"
+      alt={`Photograph of ${displayName}`}
+      loading="eager"
+      decoding="async"
+    />
 
-    <h1 class="hero__name reveal" style="--i: 1">{displayName}</h1>
-    <p class="hero__role reveal" style="--i: 2">{meta.jobTitle}</p>
+    {place && <span class="label hero__eyebrow reveal" style="--i: 1">{place.text}</span>}
 
-    <div class="hero__actions reveal" style="--i: 3">
+    <h1 class="hero__name reveal" style="--i: 2">{displayName}</h1>
+    <p class="hero__role reveal" style="--i: 3">{meta.jobTitle}</p>
+
+    <div class="hero__actions reveal" style="--i: 4">
       {/* The PDF is the artifact the build produces; opening it in a tab lets
           the browser's own viewer handle reading, printing and saving. */}
       <a class="btn" href="/cv.pdf" target="_blank" rel="noopener">
@@ -39,7 +52,7 @@ const reachable = meta.contacts.filter((c) => c.href);
       )}
     </div>
 
-    <ul class="contact-line reveal" style="--i: 4">
+    <ul class="contact-line reveal" style="--i: 5">
       {reachable.map((c) => (
         <li>
           <ContactIcon name={c.icon} />

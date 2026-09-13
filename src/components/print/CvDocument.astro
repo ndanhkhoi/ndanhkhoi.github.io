@@ -22,6 +22,12 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
 <div class="page">
 
   <header class="cv-header section--atomic">
+    {/* Served from public/portrait.webp, which scripts/prepare-assets.mjs fills
+        from assets/. Width and height are set here as well as in the CSS so the
+        image reserves its box before it decodes - paged.js measures this page
+        to the millimetre, and a header that grows after the measurement moves
+        every page break below it. */}
+    <img class="cv-portrait" src="/portrait.webp" width="512" height="512" alt={meta.name} />
     <h1 class="cv-name">{meta.name}</h1>
     <p class="cv-job-title">{meta.jobTitle}</p>
     {meta.contacts.length > 0 && (

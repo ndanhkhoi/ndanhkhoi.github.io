@@ -535,6 +535,20 @@ html[data-anim="on"] .reveal.is-done {
   padding-bottom: clamp(3rem, 2rem + 4vw, 5rem);
 }
 
+/* A circle, a hairline, nothing else - the brief bans boxes, and a photograph
+   is the one element on the page that would otherwise read as a card. */
+.hero__portrait {
+  display: block;
+  width: clamp(84px, 6vw + 60px, 120px);
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  object-fit: cover;
+  background: var(--paper-2);
+}
+
 .hero__eyebrow {
   display: block;
   margin-bottom: 1.6rem;
