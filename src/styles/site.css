@@ -802,12 +802,20 @@ html[data-anim="on"] .reveal.is-done {
   font-size: var(--fs-xs);
   color: var(--accent);
   overflow-wrap: anywhere;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  transition: border-color 0.25s var(--ease-soft);
 }
 
-.entry__link:hover {
-  border-bottom-color: var(--accent);
+/* The rule belongs under the address only. On the box it ran under the icon
+   and its gap as well, which reads as an underlined row rather than a link. */
+.entry__link span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: text-decoration-color 0.25s var(--ease-soft);
+}
+
+.entry__link:hover span {
+  text-decoration-color: var(--accent);
 }
 
 .entry__link svg {
