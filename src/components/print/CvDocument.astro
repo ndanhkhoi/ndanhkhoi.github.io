@@ -44,28 +44,6 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
     </section>
   )}
 
-  {resume.education.length > 0 && (
-    <section class="cv-section">
-      <div class="section-start">
-        <h2 class="cv-section-title section-opening">{labels.education}</h2>
-        <CvEntry
-          title={resume.education[0].degree || resume.education[0].school}
-          sub={resume.education[0].degree ? resume.education[0].school : undefined}
-          period={resume.education[0].period}
-          desc={resume.education[0].detail}
-        />
-      </div>
-      {resume.education.slice(1).map((ed) => (
-        <CvEntry
-          title={ed.degree || ed.school}
-          sub={ed.degree ? ed.school : undefined}
-          period={ed.period}
-          desc={ed.detail}
-        />
-      ))}
-    </section>
-  )}
-
   {resume.experience.length > 0 && (
     <section class="cv-section">
       <div class="section-start">
@@ -175,6 +153,28 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
           )}
         </div>
       </div>
+    </section>
+  )}
+
+  {resume.education.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.education}</h2>
+        <CvEntry
+          title={resume.education[0].degree || resume.education[0].school}
+          sub={resume.education[0].degree ? resume.education[0].school : undefined}
+          period={resume.education[0].period}
+          desc={resume.education[0].detail}
+        />
+      </div>
+      {resume.education.slice(1).map((ed) => (
+        <CvEntry
+          title={ed.degree || ed.school}
+          sub={ed.degree ? ed.school : undefined}
+          period={ed.period}
+          desc={ed.detail}
+        />
+      ))}
     </section>
   )}
 
