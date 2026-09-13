@@ -1,0 +1,45 @@
+# Temporary: produce cv.pdf on the CI runner and upload it together with the
+# text pdf.js extracts from it, so a failure that only reproduces on Linux can
+# be looked at instead of guessed at. Delete once the question is answered.
+name: PDF text probe
+
+on:
+  push:
+    branches: [ci/pdf-text-probe]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Dump what the PDF says
+        run: |
+          node scripts/pdf-facts.mjs > pdf-facts.json
+          node scripts/check-pdf.mjs || true
+          node -e "
+            const fs = require('fs');
+            const facts = JSON.parse(fs.readFileSync('pdf-facts.json', 'utf8'));
+            const out = facts.text
+              .map((t, i) => '=== page ' + (i + 1) + ' ===\n' + t)
+              .join('\n\n');
+            fs.writeFileSync('pdf-text.txt', out);
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdf-probe
+          path: |
+            pdf-facts.json
+            pdf-text.txt
+            _site/cv.pdf
