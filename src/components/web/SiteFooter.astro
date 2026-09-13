@@ -1,0 +1,34 @@
+---
+/* Closing block: the same contact links the CV carries, the two other forms of
+   this document, and a plain statement of how the page is made. /print.html is
+   listed on purpose - it is the no-JavaScript, fully selectable copy. */
+import resume from "../../data/resume.js";
+import { titleCase } from "../../lib/text";
+
+const { meta } = resume;
+const links = meta.contacts.filter((c) => c.href);
+---
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer__inner">
+      <p>{titleCase(meta.name)} · {meta.jobTitle}</p>
+
+      <nav class="site-footer__links" aria-label="Elsewhere">
+        {links.map((c) => (
+          <a
+            href={c.href}
+            target={c.href!.startsWith("http") ? "_blank" : null}
+            rel={c.href!.startsWith("http") ? "noopener" : null}
+          >{c.text}</a>
+        ))}
+        <a href="/cv.pdf" target="_blank" rel="noopener">CV (PDF)</a>
+        <a href="/print.html">HTML version</a>
+      </nav>
+    </div>
+
+    <p class="site-footer__note">
+      Built with Astro. The PDF is generated from the same data as this page,
+      paginated with Paged.js and printed by headless Chromium at build time.
+    </p>
+  </div>
+</footer>

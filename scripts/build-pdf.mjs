@@ -48,6 +48,15 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
 
 const browser = await puppeteer.launch({
+  /* chrome-headless-shell, not Chrome's newer built-in headless mode.
+     Paged.js advances its chunker one frame at a time, and the new headless
+     mode can go without producing a single animation frame - measured on this
+     project: 0 rAF callbacks in two seconds against 157 in the shell. When that
+     happens paged.js sets up its .pagedjs_pages container, emits no sheets and
+     never errors, so the build simply waits out its timeout with no clue why
+     (spec Part B, trap B4.20). The shell is the build Chrome has shipped for
+     this exact job for years and printToPDF is native to it. */
+  headless: "shell",
   args: ["--no-sandbox", "--disable-setuid-sandbox"]
 });
 try {
@@ -79,6 +88,12 @@ try {
     preferCSSPageSize: true,
     timeout: 60000
   });
+
+  /* `astro dev` serves public/, not _site, so mirror the file there too -
+     otherwise every "Download CV" link 404s during development. public/ is
+     generated and gitignored; the build always overwrites this copy. */
+  fs.mkdirSync(path.join(ROOT, "public"), { recursive: true });
+  fs.copyFileSync(out, path.join(ROOT, "public", "cv.pdf"));
 
   const kb = Math.round(fs.statSync(out).size / 1024);
   console.log(`cv.pdf written (${kb} KB)`);

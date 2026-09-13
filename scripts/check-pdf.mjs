@@ -1,11 +1,10 @@
 import path from "node:path";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { readPdfFacts, DEFAULT_PDF } from "./pdf-facts.mjs";
 
-/* Does _site/cv.pdf still say everything src/_data/resume.js says?
+/* Does _site/cv.pdf still say everything src/data/resume.js says?
  *
- * cv.pdf IS the site - the homepage renders this exact file - so a build that
+ * cv.pdf is what every download button on the site opens, so a build that
  * paginated a section away produces a perfectly valid PDF that is simply
  * missing part of the CV (spec Part B, traps B4.7/B4.9). Page count alone does
  * not catch that, which is why the deploy workflow gates on this script.
@@ -18,7 +17,8 @@ import { readPdfFacts, DEFAULT_PDF } from "./pdf-facts.mjs";
  * "what the CV contains", asserted the same way in CI and in the full check.
  */
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const resume = createRequire(import.meta.url)(path.join(ROOT, "src/_data/resume.js"));
+/* The very file the site renders - plain ESM so this script needs no build step */
+const resume = (await import(pathToFileURL(path.join(ROOT, "src/data/resume.js")).href)).default;
 
 /* Awards and labels are matched against PDF text, where a line wrap joins two
    words with no space ("Can ThoUniversity"). Comparing a 30-char prefix keeps
@@ -43,7 +43,18 @@ export function expectedFromResume(r = resume) {
     titles: keys.filter(has).length + (r.languages.length || r.interests.length ? 1 : 0),
     awardNames: r.awards.map((a) => a.name.slice(0, MATCH_LEN)),
     labels: keys.filter(has).map((k) => r.labels[k]),
-    urls: [...urls]
+    urls: [...urls],
+    /* Not used by the PDF assertions - scripts/check_view.py reads these to
+       check the web resume rendered one block per record, section by section
+       (the PDF is one continuous document, so it only needs the totals above). */
+    sections: {
+      experience: r.experience.length,
+      projects: r.projects.length,
+      skills: r.skills.length,
+      writing: r.writing.length,
+      awards: r.awards.length,
+      education: r.education.length
+    }
   };
 }
 
@@ -96,7 +107,7 @@ if (flag === "--expect") {
     }
     console.log(
       failed.length
-        ? `cv.pdf: ${failed.length} check(s) failed - the PDF does not match src/_data/resume.js`
+        ? `cv.pdf: ${failed.length} check(s) failed - the PDF does not match src/data/resume.js`
         : `cv.pdf: ${pdf.pages} pages, ${pdf.links.flat().length} links, all checks passed`
     );
   }

@@ -1,0 +1,24 @@
+---
+/* Section shell: the title sits in a sticky rail on the left, the content runs
+   in the column beside it - the marginalia layout of a well-set document. Below
+   860px the rail becomes a heading above the content.
+
+   The `id` is the scrollspy's anchor and has to match the one in
+   src/lib/sections.ts, which is why the whole SectionMeta is passed in rather
+   than the pieces. */
+import type { SectionMeta } from "../../lib/sections";
+
+interface Props {
+  meta: SectionMeta;
+}
+
+const { meta } = Astro.props;
+---
+<section class="section" id={meta.id} aria-labelledby={`${meta.id}-title`}>
+  <div class="container section__grid">
+    <h2 class="section__title reveal" id={`${meta.id}-title`}>{meta.title}</h2>
+    <div class="section__body reveal" style="--i: 1">
+      <slot />
+    </div>
+  </div>
+</section>

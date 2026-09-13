@@ -1,0 +1,55 @@
+---
+/* The first screen: who, what, how to reach him, and the PDF.
+   Every word comes from src/data/resume.js - there is no copy written here. */
+import resume from "../../data/resume.js";
+import { titleCase } from "../../lib/text";
+import ContactIcon from "../ContactIcon.astro";
+import Icon from "./Icon.astro";
+
+const { meta } = resume;
+const displayName = titleCase(meta.name);
+const place = meta.contacts.find((c) => c.icon === "location");
+const mail = meta.contacts.find((c) => c.icon === "mail");
+const isExternal = (href: string) => href.startsWith("http");
+
+/* The line under the rule is how to reach him, so it carries the contacts that
+   are actually actionable. The location is already set above the name and does
+   not need saying twice. */
+const reachable = meta.contacts.filter((c) => c.href);
+---
+<section class="hero" id="top">
+  <div class="container">
+    {place && <span class="label hero__eyebrow reveal">{place.text}</span>}
+
+    <h1 class="hero__name reveal" style="--i: 1">{displayName}</h1>
+    <p class="hero__role reveal" style="--i: 2">{meta.jobTitle}</p>
+
+    <div class="hero__actions reveal" style="--i: 3">
+      {/* The PDF is the artifact the build produces; opening it in a tab lets
+          the browser's own viewer handle reading, printing and saving. */}
+      <a class="btn" href="/cv.pdf" target="_blank" rel="noopener">
+        <Icon name="download" />
+        <span>Download CV</span>
+      </a>
+      {mail?.href && (
+        <a class="btn btn--quiet" href={mail.href}>
+          <Icon name="mail" />
+          <span>Get in touch</span>
+        </a>
+      )}
+    </div>
+
+    <ul class="contact-line reveal" style="--i: 4">
+      {reachable.map((c) => (
+        <li>
+          <ContactIcon name={c.icon} />
+          <a
+            href={c.href}
+            target={isExternal(c.href!) ? "_blank" : null}
+            rel={isExternal(c.href!) ? "noopener" : null}
+          >{c.text}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

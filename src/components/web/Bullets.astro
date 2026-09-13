@@ -1,0 +1,17 @@
+---
+/* Highlight list for the web resume. Content may contain bare URLs, so it goes
+   through the same autolink helper the A4 document uses - a link written in the
+   data is clickable in both renderings. */
+import { autolink } from "../../lib/autolink";
+
+interface Props {
+  items: string[];
+}
+
+const { items } = Astro.props;
+---
+{items.length > 0 && (
+  <ul class="bullets">
+    {items.map((item) => <li set:html={autolink(item)} />)}
+  </ul>
+)}

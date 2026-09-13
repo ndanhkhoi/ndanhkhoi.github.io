@@ -1,0 +1,224 @@
+---
+/* / - the web resume.
+ *
+ * Server-rendered from src/data/resume.js, the same file /print.html and
+ * therefore cv.pdf are built from. No client framework: the only JavaScript
+ * the page ships is src/scripts/site.ts, and everything it does is optional.
+ *
+ * Layout note: every section is a list of rows separated by hairline rules.
+ * There is deliberately not a card on this page - it is a CV, so it is set like
+ * a document (see the brief at the top of src/styles/site.css).
+ */
+import resume from "../data/resume.js";
+import { autolink } from "../lib/autolink";
+import { sectionById } from "../lib/sections";
+import SiteHeader from "../components/web/SiteHeader.astro";
+import SiteFooter from "../components/web/SiteFooter.astro";
+import Hero from "../components/web/Hero.astro";
+import Section from "../components/web/Section.astro";
+import Bullets from "../components/web/Bullets.astro";
+import Icon from "../components/web/Icon.astro";
+import "../styles/site.css";
+
+const { meta } = resume;
+const title = `${meta.name} - ${meta.jobTitle}`;
+const description = resume.summary || `${meta.name} - CV`;
+const mail = meta.contacts.find((c) => c.icon === "mail");
+const site = "https://ndanhkhoi.github.io/";
+
+/* Structured data: a recruiter's tooling (and Google) reads this before it
+   reads the layout. Same facts as the page, in the format they expect. */
+const personLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: meta.name,
+  jobTitle: meta.jobTitle,
+  description: resume.summary,
+  url: site,
+  email: mail?.href?.replace(/^mailto:/, ""),
+  address: meta.contacts.find((c) => c.icon === "location")?.text,
+  sameAs: meta.contacts.filter((c) => c.href?.startsWith("http")).map((c) => c.href),
+  worksFor: resume.experience[0]
+    ? { "@type": "Organization", name: resume.experience[0].company }
+    : undefined,
+  alumniOf: resume.education[0]
+    ? { "@type": "EducationalOrganization", name: resume.education[0].school }
+    : undefined,
+  knowsAbout: resume.skills.flatMap((s) => s.items).filter((i) => i.length <= 34),
+};
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="theme-color" content="#fbfaf8" />
+  <link rel="canonical" href={site} />
+
+  <meta property="og:type" content="profile" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={site} />
+  <meta name="twitter:card" content="summary" />
+
+  <link rel="stylesheet" href="/fonts/fonts.css" />
+
+  {/* Before first paint, so the page never flashes the wrong theme and the
+      reveal animations never flash their finished state.
+
+      The timer is the safety net for the animation flag: if site.ts is blocked,
+      404s or throws before it claims the page, the start state (opacity: 0)
+      would otherwise hide the CV for good (spec trap B4.14). */}
+  <script is:inline>
+    (function () {
+      var el = document.documentElement;
+      try {
+        var saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") el.dataset.theme = saved;
+      } catch (e) { /* private mode */ }
+
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        el.dataset.anim = "on";
+        setTimeout(function () {
+          if (!el.dataset.animReady) el.removeAttribute("data-anim");
+        }, 2500);
+      }
+    })();
+  </script>
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(personLd)} />
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="grain" aria-hidden="true"></div>
+
+  <SiteHeader />
+
+  <main id="main">
+    <Hero />
+
+    {resume.summary && (
+      <Section meta={sectionById("about")}>
+        <p class="prose" set:html={autolink(resume.summary)} />
+      </Section>
+    )}
+
+    {resume.experience.length > 0 && (
+      <Section meta={sectionById("experience")}>
+        <div class="entries">
+          {resume.experience.map((e) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
+                  {e.position}
+                  <span class="entry__org">, {[e.company, e.location].filter(Boolean).join(" · ")}</span>
+                </h3>
+                <span class="entry__period tnum">{e.period}</span>
+              </div>
+              <Bullets items={e.highlights} />
+            </article>
+          ))}
+        </div>
+      </Section>
+    )}
+
+    {resume.projects.length > 0 && (
+      <Section meta={sectionById("projects")}>
+        <div class="entries">
+          {resume.projects.map((p) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
+                  {p.name}
+                  {p.role && <span class="entry__org">, {p.role}</span>}
+                </h3>
+                <span class="entry__period tnum">{p.period}</span>
+              </div>
+              <Bullets items={p.highlights} />
+              {p.link && (
+                <a class="entry__link" href={p.link} target="_blank" rel="noopener">
+                  <span>{p.link.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
+                  <Icon name="external" />
+                </a>
+              )}
+            </article>
+          ))}
+        </div>
+      </Section>
+    )}
+
+    {resume.writing.length > 0 && (
+      <Section meta={sectionById("writing")}>
+        <div class="entries">
+          {resume.writing.map((w) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">{w.title}</h3>
+              </div>
+              <Bullets items={w.highlights} />
+            </article>
+          ))}
+        </div>
+      </Section>
+    )}
+
+    {resume.skills.length > 0 && (
+      <Section meta={sectionById("skills")}>
+        <dl class="skills">
+          {resume.skills.map((s) => (
+            <div>
+              <dt class="label">{s.label}</dt>
+              {/* One line of keywords per group. The separator is its own
+                  element so it can be quieter than the words it divides. */}
+              <dd>{s.items.map((item, i) => (
+                <>{i > 0 && <i aria-hidden="true">·</i>}{item}</>
+              ))}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+    )}
+
+    {resume.awards.length > 0 && (
+      <Section meta={sectionById("awards")}>
+        <ul class="awards">
+          {resume.awards.map((a) => (
+            <li>
+              <span>{a.name}</span>
+              {a.extra && <span class="award__year tnum">{a.extra}</span>}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )}
+
+    {resume.education.length > 0 && (
+      <Section meta={sectionById("education")}>
+        <div class="entries">
+          {resume.education.map((ed) => (
+            <article class="entry">
+              <div class="entry__head">
+                <h3 class="entry__title">
+                  {ed.degree || ed.school}
+                  {ed.degree && ed.school && <span class="entry__org">, {ed.school}</span>}
+                </h3>
+                <span class="entry__period tnum">{ed.period}</span>
+              </div>
+              {ed.detail && <p class="entry__note" set:html={autolink(ed.detail)} />}
+            </article>
+          ))}
+        </div>
+      </Section>
+    )}
+  </main>
+
+  <SiteFooter />
+
+  <script>
+    import "../scripts/site.ts";
+  </script>
+</body>
+</html>

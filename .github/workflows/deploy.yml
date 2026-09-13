@@ -30,11 +30,11 @@ jobs:
           npm ci
           npm run build
 
-      # cv.pdf is the site: the homepage renders it with pdf.js. A build that
-      # produced HTML but no PDF would deploy a page with nothing to show - and
-      # one that paginated a section away would deploy a valid PDF that is
-      # missing part of the CV. check-pdf.mjs asserts the file still says
-      # everything src/_data/resume.js says, so neither can reach gh-pages.
+      # cv.pdf is what every "Download CV" button opens. A build that produced
+      # HTML but no PDF would deploy a page whose main call to action 404s - and
+      # one that paginated a section away would deploy a perfectly valid PDF
+      # that is missing part of the CV. check-pdf.mjs asserts the file still
+      # says everything src/data/resume.js says, so neither can reach gh-pages.
       - name: Verify cv.pdf matches the CV data
         run: |
           test -s _site/cv.pdf

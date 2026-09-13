@@ -1,0 +1,923 @@
+/* ======================================================================
+   THE WEB RESUME (/) - everything on this page, and nothing else.
+
+   Design brief: this is a CV, so it is set like a document, not like a
+   dashboard. Hairline rules instead of boxes. One display serif for the two
+   moments that deserve it - the name and the section titles - and Inter for
+   everything else. A near-monochrome warm palette with a single accent, the
+   CV's own ink, used only where meaning demands it: links, the active section,
+   the reading line. Whitespace does the work borders would otherwise do.
+
+   Scope: loaded ONLY by src/pages/index.astro. The A4 document
+   (/print.html, src/styles/resume.css) never sees it, and must not: that page
+   is measured by paged.js in millimetres and has its own rules, including the
+   ban on @media (spec Part B, trap B4.1). Here we are a normal web page, so
+   @media, transitions and colour schemes are all fair game.
+
+   Animation contract: nothing is hidden by default. The reveal-on-scroll start
+   state only applies under html[data-anim="on"], a flag src/scripts/site.ts
+   sets at runtime - so with JS off, or before the script runs, every word is
+   already on screen. prefers-reduced-motion switches the whole page to static.
+   ====================================================================== */
+
+/* ===== Tokens ===== */
+
+:root {
+  color-scheme: light dark;
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* Display only - never body text, and never asked for a weight it doesn't have */
+  --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype",
+    "Times New Roman", serif;
+
+  --fs-micro: 0.6875rem;
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lead: clamp(1.0625rem, 0.95rem + 0.5vw, 1.3125rem);
+  --fs-title: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --fs-hero: clamp(2.75rem, 1.4rem + 5.6vw, 5.5rem);
+
+  --section-y: clamp(3.5rem, 2rem + 5vw, 5.5rem);
+  --rail: 190px;
+  --gutter: 3.5rem;
+  --measure: 62ch;
+  --container: 1040px;
+  --header-h: 62px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.7s;
+}
+
+/* Light - warm paper, the CV's ink */
+:root,
+:root[data-theme="light"] {
+  --paper: #fbfaf8;
+  --paper-2: #f4f2ed;
+  --ink: #16181c;
+  --ink-soft: #3d4148;
+  --ink-muted: #706c66;
+  --rule: #e5e1d8;
+  --rule-strong: #cdc7ba;
+  --accent: #16437e;
+  --accent-soft: rgba(22, 67, 126, 0.1);
+  --on-solid: #fbfaf8;
+  --solid: #16181c;
+  --grain: 0.035;
+}
+
+:root[data-theme="dark"] {
+  --paper: #0d0d0f;
+  --paper-2: #17171a;
+  --ink: #ecebe7;
+  --ink-soft: #bfbcb5;
+  --ink-muted: #928e87;
+  --rule: #26262a;
+  --rule-strong: #3a3a40;
+  --accent: #93b4f0;
+  --accent-soft: rgba(147, 180, 240, 0.14);
+  --on-solid: #0d0d0f;
+  --solid: #ecebe7;
+  --grain: 0.05;
+}
+
+/* No stored choice: follow the OS. The [data-theme] rules above still win,
+   which is what lets the toggle disagree with the system. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d0d0f;
+    --paper-2: #17171a;
+    --ink: #ecebe7;
+    --ink-soft: #bfbcb5;
+    --ink-muted: #928e87;
+    --rule: #26262a;
+    --rule-strong: #3a3a40;
+    --accent: #93b4f0;
+    --accent-soft: rgba(147, 180, 240, 0.14);
+    --on-solid: #0d0d0f;
+    --solid: #ecebe7;
+    --grain: 0.05;
+  }
+}
+
+/* ===== Base ===== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Anchor targets clear the fixed header instead of hiding under it. This is
+     the ONLY anchor offset on the page - a scroll-margin on the sections as
+     well would stack with it and land them far below the header, where the
+     scrollspy's "what am I reading" line no longer covers them (trap B4.16). */
+  scroll-padding-top: calc(var(--header-h) + 12px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "kern" 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+svg {
+  display: block;
+}
+
+.container {
+  width: min(100% - 3rem, var(--container));
+  margin-inline: auto;
+}
+
+@media (max-width: 640px) {
+  .container {
+    width: min(100% - 2.25rem, var(--container));
+  }
+}
+
+/* The one repeated micro-typographic device: small, tracked, muted. */
+.label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Dates and years - tabular, so two rows never disagree about digit width */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* A link inside running text: underlined from the start, because a link the
+   reader has to hunt for is not a link. */
+.link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: text-decoration-color 0.25s var(--ease-soft);
+}
+
+.link:hover {
+  text-decoration-color: var(--accent);
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 200;
+  padding: 0.6rem 1rem;
+  border-radius: 3px;
+  background: var(--solid);
+  color: var(--on-solid);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  transform: translateY(-180%);
+  transition: transform 0.25s var(--ease);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* Paper grain. A flat fill reads as a screen; a little noise reads as a
+   surface. Fixed and behind everything, so scrolling never repaints it. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ===== Motion primitives ===== */
+
+/* Start state applies only once the script has claimed the page - see the
+   animation contract at the top of this file (trap B4.14). */
+html[data-anim="on"] .reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  /* Capped: a long list would otherwise arrive most of a second late */
+  transition-delay: calc(min(var(--i, 0), 4) * 60ms);
+  will-change: opacity, transform;
+}
+
+html[data-anim="on"] .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+html[data-anim="on"] .reveal.is-done {
+  will-change: auto;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  html[data-anim="on"] .reveal,
+  html[data-anim="on"] .reveal.is-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== Header ===== */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background 0.35s var(--ease-soft), border-color 0.35s var(--ease-soft);
+}
+
+/* Opaque once anything scrolls underneath: at anything less, a hero-sized
+   heading stays legible straight through the bar, blur and all. */
+.site-header[data-stuck="true"] {
+  background: var(--paper);
+  border-bottom-color: var(--rule);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  width: min(100% - 3rem, var(--container));
+  margin-inline: auto;
+}
+
+@media (max-width: 640px) {
+  .site-header__inner {
+    width: min(100% - 2.25rem, var(--container));
+  }
+}
+
+.brand {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink);
+  /* The name only appears up here once the hero has scrolled away - two copies
+     of it on screen at once is one too many. */
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.35s var(--ease-soft), transform 0.35s var(--ease);
+  pointer-events: none;
+}
+
+.site-header[data-stuck="true"] .brand {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .brand {
+    font-size: 1.1rem;
+  }
+}
+
+/* Nav ------------------------------------------------------------------- */
+
+.site-nav {
+  margin-left: auto;
+  min-width: 0;
+}
+
+.site-nav__list {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.site-nav__link {
+  position: relative;
+  display: block;
+  padding: 0.35rem 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  transition: color 0.25s var(--ease-soft);
+}
+
+/* A rule that grows from the left, rather than a pill that lights up */
+.site-nav__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.35s var(--ease);
+}
+
+.site-nav__link:hover,
+.site-nav__link[aria-current="true"] {
+  color: var(--ink);
+}
+
+.site-nav__link[aria-current="true"]::after {
+  transform: scaleX(1);
+}
+
+@media (max-width: 940px) {
+  .site-nav {
+    display: none;
+  }
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.site-nav + .site-header__actions {
+  margin-left: 2rem;
+}
+
+/* Reading progress ------------------------------------------------------ */
+
+.progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 1px;
+  width: 100%;
+  transform: scaleX(var(--progress, 0));
+  transform-origin: 0 50%;
+  background: var(--accent);
+  /* Driven from rAF-throttled scroll; a transition here would lag behind it. */
+  will-change: transform;
+}
+
+/* ===== Controls ===== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--solid);
+  border-radius: 3px;
+  background: var(--solid);
+  color: var(--on-solid);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: opacity 0.25s var(--ease-soft), transform 0.2s var(--ease),
+    border-color 0.25s var(--ease-soft);
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+/* Secondary: a rule, not a fill */
+.btn--quiet {
+  border-color: var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.btn--quiet:hover {
+  opacity: 1;
+  border-color: var(--ink);
+}
+
+.btn--icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  border-radius: 50%;
+}
+
+.btn--icon:hover {
+  opacity: 1;
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+}
+
+.theme-toggle__icon {
+  grid-area: 1 / 1;
+  width: 16px;
+  height: 16px;
+  transition: opacity 0.3s var(--ease-soft), transform 0.45s var(--ease);
+}
+
+.theme-toggle__icon--sun {
+  opacity: 0;
+  transform: rotate(-60deg) scale(0.7);
+}
+
+:root[data-theme="dark"] .theme-toggle__icon--sun {
+  opacity: 1;
+  transform: none;
+}
+
+:root[data-theme="dark"] .theme-toggle__icon--moon {
+  opacity: 0;
+  transform: rotate(60deg) scale(0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle__icon--sun {
+    opacity: 1;
+    transform: none;
+  }
+
+  :root:not([data-theme="light"]) .theme-toggle__icon--moon {
+    opacity: 0;
+    transform: rotate(60deg) scale(0.7);
+  }
+}
+
+/* ===== Hero ===== */
+
+.hero {
+  padding-top: calc(var(--header-h) + clamp(3rem, 1rem + 10vw, 8rem));
+  padding-bottom: clamp(3rem, 2rem + 4vw, 5rem);
+}
+
+.hero__eyebrow {
+  display: block;
+  margin-bottom: 1.6rem;
+}
+
+.hero__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-hero);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.hero__role {
+  margin-top: 1.4rem;
+  max-width: var(--measure);
+  font-size: var(--fs-lead);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 2.2rem;
+}
+
+/* Contacts as a set line, not a row of pills */
+.contact-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.1rem;
+  margin-top: 2.4rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--rule);
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+
+.contact-line li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.contact-line svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+
+.contact-line a {
+  border-bottom: 1px solid transparent;
+  transition: color 0.25s var(--ease-soft), border-color 0.25s var(--ease-soft);
+}
+
+.contact-line a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--rule-strong);
+}
+
+/* ===== Section: title rail + content ===== */
+
+.section {
+  padding-block: var(--section-y);
+  border-top: 1px solid var(--rule);
+}
+
+.section__grid {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: var(--gutter);
+  align-items: start;
+}
+
+.section__title {
+  position: sticky;
+  top: calc(var(--header-h) + 2rem);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+@media (max-width: 860px) {
+  .section__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.6rem;
+  }
+
+  .section__title {
+    position: static;
+  }
+}
+
+/* ===== Entries: rows separated by rules, never boxes ===== */
+
+.entries > * + * {
+  border-top: 1px solid var(--rule);
+}
+
+.entry {
+  display: block;
+  padding-block: 1.9rem;
+}
+
+.entries > :first-child {
+  padding-top: 0;
+}
+
+.entries > :last-child {
+  padding-bottom: 0;
+}
+
+.entry__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1.25rem;
+}
+
+.entry__title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+
+.entry__org {
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+.entry__period {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .entry__period {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.entry__note {
+  margin-top: 0.5rem;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.entry__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: border-color 0.25s var(--ease-soft);
+}
+
+.entry__link:hover {
+  border-bottom-color: var(--accent);
+}
+
+.entry__link svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  transition: transform 0.3s var(--ease);
+}
+
+.entry__link:hover svg {
+  transform: translate(2px, -2px);
+}
+
+/* Bullets --------------------------------------------------------------- */
+
+.bullets {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1.1rem;
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.bullets li {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+/* A hairline dash, the way a well-set list marks its items */
+.bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.78em;
+  width: 0.5rem;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+.bullets a {
+  overflow-wrap: anywhere;
+}
+
+/* ===== Prose ===== */
+
+.prose {
+  max-width: var(--measure);
+  font-size: var(--fs-lead);
+  line-height: 1.62;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* ===== Skills: a definition list, not fourteen boxes ===== */
+
+.skills > div {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0.35rem var(--gutter);
+  padding-block: 1.1rem;
+}
+
+.skills > div + div {
+  border-top: 1px solid var(--rule);
+}
+
+.skills > :first-child {
+  padding-top: 0;
+}
+
+.skills > :last-child {
+  padding-bottom: 0;
+}
+
+.skills dt {
+  padding-top: 0.25em;
+}
+
+.skills dd {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* The separator between keywords - quiet, so the words read first */
+.skills dd i {
+  font-style: normal;
+  color: var(--rule-strong);
+  padding-inline: 0.2em;
+}
+
+@media (max-width: 700px) {
+  .skills > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+/* ===== Awards ===== */
+
+.awards > li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  padding-block: 1.1rem;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.awards > li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.awards > :first-child {
+  padding-top: 0;
+}
+
+.awards > :last-child {
+  padding-bottom: 0;
+}
+
+.award__year {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+
+@media (max-width: 520px) {
+  .awards > li {
+    flex-wrap: wrap;
+  }
+
+  .award__year {
+    margin-left: 0;
+    order: -1;
+    width: 100%;
+  }
+}
+
+/* ===== Footer ===== */
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding-block: 3rem 4rem;
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.site-footer__links a {
+  border-bottom: 1px solid transparent;
+  transition: color 0.25s var(--ease-soft), border-color 0.25s var(--ease-soft);
+}
+
+.site-footer__links a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--rule-strong);
+}
+
+.site-footer__note {
+  margin-top: 2rem;
+  max-width: 52ch;
+  font-size: var(--fs-micro);
+  line-height: 1.6;
+  color: var(--ink-muted);
+  opacity: 0.85;
+}
+
+/* ===== Printing the web page =====
+   cv.pdf is the printable artifact and every route to it is one click away. If
+   someone prints this page anyway, drop the chrome so the paper carries the
+   content and not the navigation. */
+@media print {
+  .site-header,
+  .grain,
+  .skip-link,
+  .hero__actions {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .hero {
+    padding-top: 0;
+  }
+
+  .section,
+  .entry {
+    break-inside: avoid;
+  }
+}

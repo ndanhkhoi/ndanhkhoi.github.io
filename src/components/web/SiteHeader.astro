@@ -1,0 +1,46 @@
+---
+/* Fixed header: quiet at the top of the page, then a solid bar carrying the
+   name, the section nav and the PDF once anything scrolls under it.
+
+   The stuck state, the reading-progress line and the aria-current on the links
+   are all set by src/scripts/site.ts; with no JS this is still a working set of
+   anchor links and a link to the PDF, which is the point. */
+import resume from "../../data/resume.js";
+import { sections } from "../../lib/sections";
+import { titleCase } from "../../lib/text";
+import Icon from "./Icon.astro";
+
+const displayName = titleCase(resume.meta.name);
+---
+<header class="site-header" id="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="#top">{displayName}</a>
+
+    <nav class="site-nav" aria-label="Sections">
+      <ul class="site-nav__list">
+        {sections.map((s) => (
+          <li><a class="site-nav__link" href={`#${s.id}`} data-nav-for={s.id}>{s.nav}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <button
+        type="button"
+        class="btn btn--icon theme-toggle"
+        id="theme-toggle"
+        aria-label="Switch colour theme"
+      >
+        <Icon name="moon" class="theme-toggle__icon theme-toggle__icon--moon" />
+        <Icon name="sun" class="theme-toggle__icon theme-toggle__icon--sun" />
+      </button>
+
+      <a class="btn btn--quiet" id="open-pdf" href="/cv.pdf" target="_blank" rel="noopener">
+        <Icon name="file" />
+        <span>CV</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+</header>

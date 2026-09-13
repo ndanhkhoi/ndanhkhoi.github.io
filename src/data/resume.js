@@ -1,14 +1,24 @@
 /**
  * ALL CV data - edit personal info in this file only; no layout changes needed.
  *
+ * One source, three renderings: the web resume (/), the A4 print source
+ * (/print.html) and cv.pdf, which is printed from that source. Everything below
+ * feeds all three - there is no web-only copy anywhere. If a sentence is not on
+ * the CV, it does not belong on the site either.
+ *
  * Conventions:
- * - Any section left empty ([] or "") self-hides from the CV page.
+ * - Any section left empty ([] or "") self-hides from both pages.
  * - `labels` = section titles - change the CV language here.
  * - `meta.contacts`: icon is one of {location, phone, mail, globe} (empty = no icon);
  *   optional `href` to make it a link (tel:/mailto:/https:).
  * - Content transferred verbatim from the original CV (Nguyen-Duc-Anh-Khoi-CV 2.pdf).
+ *
+ * Plain ESM so both Astro and plain node can read it: scripts/check-pdf.mjs
+ * imports this file to derive what cv.pdf must contain.
  */
-module.exports = {
+
+/** @type {import("./resume-types").Resume} */
+const resume = {
   meta: {
     name: "NGUYEN DUC ANH KHOI",
     jobTitle: "Senior Java Backend Developer",
@@ -201,3 +211,6 @@ module.exports = {
 
   interests: []
 };
+
+export default resume;
+
