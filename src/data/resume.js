@@ -31,7 +31,7 @@ const resume = {
   },
 
   labels: {
-    summary: "Objective",
+    summary: "Professional Summary",
     education: "Education",
     experience: "Work Experience",
     projects: "Projects",
