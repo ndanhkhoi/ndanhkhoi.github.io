@@ -259,14 +259,14 @@ competing as duplicate content.
 ## B3. Stage 2 - `cv.pdf`
 
 `npm run build:pdf` (`scripts/build-pdf.mjs`) serves `_site` over HTTP (paged.js
-cannot load CSS over `file://`), opens `/print.html` in `chrome-headless-shell`
-at a 1200px viewport, waits for `data-paged-ready` to match both the sheet count
-and the stamped-number count, then prints with `preferCSSPageSize` +
-`printBackground`.
+cannot load CSS over `file://`), opens `/print.html` in headless Chromium at a
+1200px viewport, checks the browser is producing animation frames at all (trap
+B4.20), waits for `data-paged-ready` to match both the sheet count and the
+stamped-number count, then prints with `preferCSSPageSize` + `printBackground`.
 
-The shell, not Chrome's newer built-in headless mode: paged.js advances its
-chunker one animation frame at a time and the new mode can produce none at all,
-which hangs the build with no error to read (trap B4.20).
+Puppeteer's default headless mode, deliberately: `chrome-headless-shell` splits
+letter-spaced text into separate runs, and the CV stops extracting cleanly
+(trap B4.20).
 
 The result is written into `_site/cv.pdf` (and mirrored to `public/cv.pdf` for
 the dev server). It is **not** an Astro input: Astro clears `_site` at the start
@@ -443,17 +443,34 @@ of the new page.
     `compareDocumentPosition`, so the scan cannot be fed a wrong order, and
     `check_view.py` asserts the nav lists the sections in page order so the
     reading order stays deliberate rather than accidental.
-20. **Paged.js needs animation frames, and Chrome's new headless mode may never
-    produce one.** `build-pdf.mjs` started timing out on every run: paged.js
+20. **Paged.js needs animation frames, and `headless: "shell"` is not the way to
+    get them.** `build-pdf.mjs` once started timing out on every run: paged.js
     moved the content into its template, created `.pagedjs_pages`, emitted zero
-    sheets and raised nothing. The chunker advances one frame at a time, and
-    measured on this machine the default puppeteer headless ran **0
-    requestAnimationFrame callbacks in two seconds**, against 157 in
-    `chrome-headless-shell`. Nothing about the page was wrong - Playwright
-    paginated the same file fine, which is what made it look like a server or a
-    CSS problem for a while. `puppeteer.launch({ headless: "shell" })` is the
-    fix. If the PDF build ever hangs again with no error, check whether frames
-    are being produced before looking at the document.
+    sheets and raised nothing. The chunker advances one frame at a time, and the
+    browser was producing **0 requestAnimationFrame callbacks in two seconds**
+    where `chrome-headless-shell` produced 157 - so switching to the shell
+    "fixed" it, and the fix was worse than the bug.
+
+    The shell encodes text runs differently. On Linux it splits every
+    letter-spaced string, and the CV's own text stopped extracting: the PDF read
+    back as `SEN IO R JAVA BA CKEN D DEV ELO PER` and `OBJ ECTIVE` instead of
+    the job title and the section headings. A CV is parsed by software before a
+    human sees it, so that is a real defect in the artifact, not a quirk of the
+    reader - and the section-label assertions in `check-pdf.mjs` caught it on
+    the first CI run. Both modes were built on the same runner to confirm it:
+    default headless clean, shell split.
+
+    The zero-frame state turned out to be transient - the same machine produced
+    90 frames per 1.5s once it was less loaded, in every flag combination
+    tried. So the build stays on the default headless mode, and instead asserts
+    up front that frames are being produced, failing with that diagnosis rather
+    than waiting out a silent 60s timeout.
+
+    Two lessons worth keeping: a hang with no error is worth measuring before
+    theorising (Playwright paginated the same file fine throughout, which made
+    it look like a server or a CSS fault), and **never relax a content
+    assertion to make a build pass** - the assertion was right and the build
+    was wrong.
 
 ---
 
@@ -465,6 +482,7 @@ of the new page.
 - [ ] Page split mid-section → 12mm margins repeat correctly (padding compensation).
 - [ ] `/print.html` sheet count == `cv.pdf` page count, page numbers exact.
 - [ ] Print: A4, 100% scale, header/footer off.
+- [ ] `cv.pdf` still extracts as text: `node scripts/pdf-facts.mjs | head -c 300` reads as words, not as `OBJ ECTIVE` (trap B4.20).
 - [ ] Web resume: nav, theme toggle and the PDF link all work; the nav lists the sections in page order; the page is complete with JavaScript disabled.
 - [ ] `python3 scripts/check_view.py` all green (served `_site`). It covers: **cv.pdf** (section labels, awards and every CV url present as a real link annotation, `i / N` on every page), **/print.html** (no content dropped vs `resume.js`, nothing clipped outside the sheets, no overfilled pages, no orphaned titles - trap B4.9 is invisible to DOM counting alone), and **/** on Chromium + WebKit across six viewports (one rendered block per record in every section, no horizontal overflow, hero clears the fixed header, every external link target=_blank, the PDF and the HTML copy both linked, nothing left invisible by the reveal animation, nav click marks the right section and lands below the header, nav order matches page order, theme toggle repaints and persists) plus reduced-motion and JavaScript-disabled runs. Screenshots land in `test-artifacts/`.
 - [ ] No `@media` block in `resume.css` (trap B4.1) - `site.css` is exempt.
