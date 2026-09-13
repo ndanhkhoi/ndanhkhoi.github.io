@@ -105,7 +105,7 @@ const resume = {
   projects: [
     {
       name: "Audi Sai Gon - Dealership Website",
-      role: "Client Project",
+      role: "Freelance Client Project",
       period: "Apr 2026 - Present",
       link: "https://audisaigon.vn/",
       highlights: [
@@ -202,7 +202,7 @@ const resume = {
           "development workflow"
       ]
     },
-    { label: "Language", items: ["English (communication)", "Vietnamese (native)"] },
+    { label: "Language", items: ["English — Able to read technical documentation and communicate in professional contexts", "Vietnamese (native)"] },
     {
       label: "Leadership & Collaboration",
       items: [
