@@ -406,8 +406,93 @@ html[data-anim="on"] .reveal.is-done {
   flex: 0 0 auto;
 }
 
-.site-nav + .site-header__actions {
-  margin-left: 2rem;
+/* The nav's own margin-left: auto is what pushes this pair to the right edge,
+   so the gap below may only replace it while that nav is actually on screen.
+   Set unconditionally it would win over margin-left: auto by specificity and
+   leave the two buttons sitting against the brand on every narrow screen. */
+@media (min-width: 941px) {
+  .site-nav + .site-header__actions {
+    margin-left: 2rem;
+  }
+}
+
+/* Menu button ----------------------------------------------------------- */
+
+/* Hidden at every width by default, and `hidden` until site.ts claims it - the
+   panel it opens has no CSS-only fallback, so on a wide screen or with no JS
+   this button should not exist at all.
+
+   Qualified with .btn because that is the class it is fighting: .btn sets
+   display: inline-flex further down this file and would otherwise win the tie
+   on source order alone. */
+.btn.nav-toggle {
+  display: none;
+}
+
+@media (max-width: 940px) {
+  .btn.nav-toggle:not([hidden]) {
+    display: grid;
+  }
+}
+
+/* Two glyphs in one grid cell, the way the theme toggle stacks its own: the
+   button keeps its size and the bars turn into the cross in place. */
+.nav-toggle {
+  place-items: center;
+}
+
+.nav-toggle__icon {
+  grid-area: 1 / 1;
+  width: 16px;
+  height: 16px;
+  transition: opacity 0.3s var(--ease-soft), transform 0.45s var(--ease);
+}
+
+.nav-toggle[aria-expanded="false"] .nav-toggle__icon--close,
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon--menu {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.7);
+}
+
+/* Mobile section nav ---------------------------------------------------- */
+
+/* A sheet hung under the bar rather than over the page: the CV stays visible
+   behind it, which is the point of jumping between its sections. */
+.mobile-nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.45);
+}
+
+.mobile-nav[hidden] {
+  display: none;
+}
+
+.mobile-nav__list {
+  width: min(100% - 2.25rem, var(--container));
+  margin-inline: auto;
+  padding: 0.4rem 0 0.9rem;
+}
+
+.mobile-nav__list > * + * {
+  border-top: 1px solid var(--rule);
+}
+
+.mobile-nav__link {
+  display: block;
+  padding: 0.85rem 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  transition: color 0.25s var(--ease-soft);
+}
+
+.mobile-nav__link:hover,
+.mobile-nav__link[aria-current="true"] {
+  color: var(--accent);
 }
 
 /* Reading progress ------------------------------------------------------ */
@@ -533,6 +618,20 @@ html[data-anim="on"] .reveal.is-done {
 .hero {
   padding-top: calc(var(--header-h) + clamp(3rem, 1rem + 10vw, 8rem));
   padding-bottom: clamp(3rem, 2rem + 4vw, 5rem);
+}
+
+/* A circle, a hairline, nothing else - the brief bans boxes, and a photograph
+   is the one element on the page that would otherwise read as a card. */
+.hero__portrait {
+  display: block;
+  width: clamp(84px, 6vw + 60px, 120px);
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  object-fit: cover;
+  background: var(--paper-2);
 }
 
 .hero__eyebrow {
@@ -703,12 +802,20 @@ html[data-anim="on"] .reveal.is-done {
   font-size: var(--fs-xs);
   color: var(--accent);
   overflow-wrap: anywhere;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  transition: border-color 0.25s var(--ease-soft);
 }
 
-.entry__link:hover {
-  border-bottom-color: var(--accent);
+/* The rule belongs under the address only. On the box it ran under the icon
+   and its gap as well, which reads as an underlined row rather than a link. */
+.entry__link span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: text-decoration-color 0.25s var(--ease-soft);
+}
+
+.entry__link:hover span {
+  text-decoration-color: var(--accent);
 }
 
 .entry__link svg {

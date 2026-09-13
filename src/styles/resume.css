@@ -155,6 +155,20 @@ a {
     text-align: center;
 }
 
+/* Sized in mm because everything on this page is: at 22mm the photograph reads
+   at arm's length in print without taking a section's worth of the first page.
+   The hairline keeps a foggy, near-white background from bleeding into the
+   paper. */
+.cv-portrait {
+    display: block;
+    width: 22mm;
+    height: 22mm;
+    margin: 0 auto var(--sp-4);
+    border-radius: 50%;
+    border: 0.3mm solid var(--c-rule);
+    object-fit: cover;
+}
+
 .cv-name {
     font-size: var(--fs-name);
     font-weight: 700;

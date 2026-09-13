@@ -22,6 +22,12 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
 <div class="page">
 
   <header class="cv-header section--atomic">
+    {/* Served from public/portrait.webp, which scripts/prepare-assets.mjs fills
+        from assets/. Width and height are set here as well as in the CSS so the
+        image reserves its box before it decodes - paged.js measures this page
+        to the millimetre, and a header that grows after the measurement moves
+        every page break below it. */}
+    <img class="cv-portrait" src="/portrait.webp" width="512" height="512" alt={meta.name} />
     <h1 class="cv-name">{meta.name}</h1>
     <p class="cv-job-title">{meta.jobTitle}</p>
     {meta.contacts.length > 0 && (
@@ -41,28 +47,6 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
         <h2 class="cv-section-title section-opening">{labels.summary}</h2>
         <p class="cv-summary" set:html={autolink(resume.summary)} />
       </div>
-    </section>
-  )}
-
-  {resume.education.length > 0 && (
-    <section class="cv-section">
-      <div class="section-start">
-        <h2 class="cv-section-title section-opening">{labels.education}</h2>
-        <CvEntry
-          title={resume.education[0].degree || resume.education[0].school}
-          sub={resume.education[0].degree ? resume.education[0].school : undefined}
-          period={resume.education[0].period}
-          desc={resume.education[0].detail}
-        />
-      </div>
-      {resume.education.slice(1).map((ed) => (
-        <CvEntry
-          title={ed.degree || ed.school}
-          sub={ed.degree ? ed.school : undefined}
-          period={ed.period}
-          desc={ed.detail}
-        />
-      ))}
     </section>
   )}
 
@@ -175,6 +159,28 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
           )}
         </div>
       </div>
+    </section>
+  )}
+
+  {resume.education.length > 0 && (
+    <section class="cv-section">
+      <div class="section-start">
+        <h2 class="cv-section-title section-opening">{labels.education}</h2>
+        <CvEntry
+          title={resume.education[0].degree || resume.education[0].school}
+          sub={resume.education[0].degree ? resume.education[0].school : undefined}
+          period={resume.education[0].period}
+          desc={resume.education[0].detail}
+        />
+      </div>
+      {resume.education.slice(1).map((ed) => (
+        <CvEntry
+          title={ed.degree || ed.school}
+          sub={ed.degree ? ed.school : undefined}
+          period={ed.period}
+          desc={ed.detail}
+        />
+      ))}
     </section>
   )}
 
