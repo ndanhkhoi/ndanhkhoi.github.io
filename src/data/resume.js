@@ -67,7 +67,7 @@ const resume = {
         "Lead and mentor a team of 5 developers, conducting bi-weekly 1-on-1s that improved team retention to 100% over 2 years",
         "Established team-wide commit conventions and led the design and rollout of a Maven extension that installs a Git " +
           "commit-msg hook to enforce them, adopted across 4 microservice teams spanning 4 projects",
-        "Establish and enforce coding standards, conduct thorough code reviews to maintain high code quality across projects, " +
+        "Established and enforced coding standards, conduct thorough code reviews to maintain high code quality across projects, " +
           "led 500+ code reviews annually, reducing production bugs by 40%",
         "Architected and led the implementation of an asynchronous e-invoice integration flow to replace the traditional " +
           "synchronous process, improving system responsiveness and reducing coupling between VNPT HIS and external " +
@@ -77,7 +77,7 @@ const resume = {
           "billions VND in insurance claims each month",
         "Spearheaded VNPT HIS 4.0 platform upgrade from Java 8 to Java 21, Spring Boot 2.3 to 3.5, and Hibernate 5 to 6, " +
           "enhancing performance and enabling adoption of modern Java features across microservices architecture",
-        "Optimize VNPT HIS 4.0 system performance, scaling capacity from 200 to 1,000+ concurrent users through performance " +
+        "Optimized VNPT HIS 4.0 system performance, scaling capacity from 200 to 1,000+ concurrent users through performance " +
           "tuning and architecture improvements",
         "Coordinated closely with QA, DevOps, Business Analysis, and Product teams to consistently complete 2 sprints per " +
           "month, delivering an average of ~100 issues per sprint while ensuring alignment with hospital needs and Ministry " +
