@@ -48,21 +48,33 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
 
 const browser = await puppeteer.launch({
-  /* chrome-headless-shell, not Chrome's newer built-in headless mode.
-     Paged.js advances its chunker one frame at a time, and the new headless
-     mode can go without producing a single animation frame - measured on this
-     project: 0 rAF callbacks in two seconds against 157 in the shell. When that
-     happens paged.js sets up its .pagedjs_pages container, emits no sheets and
-     never errors, so the build simply waits out its timeout with no clue why
-     (spec Part B, trap B4.20). The shell is the build Chrome has shipped for
-     this exact job for years and printToPDF is native to it. */
-  headless: "shell",
   args: ["--no-sandbox", "--disable-setuid-sandbox"]
 });
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 900 }); /* wide viewport → sheets at 100% */
   await page.goto(`http://127.0.0.1:${port}${SOURCE}`, { waitUntil: "networkidle0" });
+
+  /* Paged.js advances its chunker one animation frame at a time. A browser that
+     produces none - which a loaded machine's compositor can do, transiently -
+     leaves it set up and idle: no sheets, no error, and the wait below simply
+     times out with nothing to read. Name that failure instead of letting it
+     look like a problem with the document (spec Part B, trap B4.20). */
+  const frames = await page.evaluate(async () => {
+    let n = 0;
+    const tick = () => { n++; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return n;
+  });
+  if (frames === 0) {
+    throw new Error(
+      "the browser produced no animation frames - paged.js cannot paginate.\n" +
+        "This is the machine, not the CV: retry, or free it up and retry.\n" +
+        "Do NOT reach for headless: 'shell' - it paginates but splits the PDF's\n" +
+        "text runs, so the CV stops extracting cleanly (spec trap B4.20)."
+    );
+  }
 
   /* The boot script stamps data-paged-ready only after the page count has been
      stable for three polls and every sheet carries its number - printing before

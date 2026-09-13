@@ -7,3 +7,6 @@ public/
 .DS_Store
 .idea/
 test-artifacts/
+
+# local copy of a Claude skill, created by running one in this directory
+.claude/
