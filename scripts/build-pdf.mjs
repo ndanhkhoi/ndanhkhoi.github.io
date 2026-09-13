@@ -56,7 +56,7 @@ const browser = await puppeteer.launch({
      never errors, so the build simply waits out its timeout with no clue why
      (spec Part B, trap B4.20). The shell is the build Chrome has shipped for
      this exact job for years and printToPDF is native to it. */
-  headless: "shell",
+  headless: process.env.PDF_HEADLESS === "shell" ? "shell" : true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"]
 });
 try {

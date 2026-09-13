@@ -1,6 +1,6 @@
-# Temporary: produce cv.pdf on the CI runner and upload it together with the
-# text pdf.js extracts from it, so a failure that only reproduces on Linux can
-# be looked at instead of guessed at. Delete once the question is answered.
+# Temporary: produce cv.pdf on the CI runner in both headless modes and upload
+# the text pdf.js extracts from each, so the difference can be looked at instead
+# of guessed at. Delete once the question is answered.
 name: PDF text probe
 
 on:
@@ -10,19 +10,22 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, shell]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Install & build
-        run: |
-          npm ci
-          npm run build
-
+      - run: npm ci
+      - run: npm run build:html
+      - name: Print the PDF
+        env:
+          PDF_HEADLESS: ${{ matrix.mode }}
+        run: npm run build:pdf
       - name: Dump what the PDF says
         run: |
           node scripts/pdf-facts.mjs > pdf-facts.json
@@ -30,16 +33,11 @@ jobs:
           node -e "
             const fs = require('fs');
             const facts = JSON.parse(fs.readFileSync('pdf-facts.json', 'utf8'));
-            const out = facts.text
-              .map((t, i) => '=== page ' + (i + 1) + ' ===\n' + t)
-              .join('\n\n');
-            fs.writeFileSync('pdf-text.txt', out);
+            fs.writeFileSync('pdf-text.txt', facts.text.map((t, i) => '=== page ' + (i + 1) + ' ===\n' + t).join('\n\n'));
           "
-
       - uses: actions/upload-artifact@v4
         with:
-          name: pdf-probe
+          name: pdf-probe-${{ matrix.mode }}
           path: |
-            pdf-facts.json
             pdf-text.txt
             _site/cv.pdf
