@@ -218,14 +218,18 @@ WEB_METRICS_JS = """
     navResolves: navLinks.every(a => document.getElementById(a.dataset.navFor)),
     /* A nav that lists the sections in a different order than the page shows
        them reads as wrong, and the scrollspy's "last one above the line" scan
-       depends on knowing which order is real. */
-    navInDocumentOrder: (() => {
-      const tops = navLinks
+       depends on knowing which order is real.
+
+       Checked one list at a time: the header nav and the narrow-screen menu
+       are two presentations of the same sections, so the flat set of
+       [data-nav-for] links runs through the page order twice by design. */
+    navInDocumentOrder: [...document.querySelectorAll('.site-nav, .mobile-nav')].every(nav => {
+      const tops = [...nav.querySelectorAll('[data-nav-for]')]
         .map(a => document.getElementById(a.dataset.navFor))
         .filter(Boolean)
         .map(el => el.getBoundingClientRect().top + scrollY);
       return tops.every((t, i) => i === 0 || t >= tops[i - 1]);
-    })(),
+    }),
     activeNav: (document.querySelector('[data-nav-for][aria-current="true"]') || {}).dataset,
     /* Every off-site link opens in a new tab - a project-wide rule that also
        holds inside cv.pdf (checked there as link annotations). */
@@ -349,7 +353,7 @@ def check_nav_and_theme(browser):
     # Clicking a nav link must land in that section AND mark it current: the
     # anchor offset and the scrollspy line are two numbers that have to agree.
     for section in ("skills", "awards"):
-        page.click(f'[data-nav-for="{section}"]')
+        page.click(f'.site-nav [data-nav-for="{section}"]')
         page.wait_for_timeout(1200)
         current = page.evaluate(
             "() => (document.querySelector('[data-nav-for][aria-current=\"true\"]') || {dataset:{}}).dataset.navFor")
@@ -379,6 +383,65 @@ def check_nav_and_theme(browser):
     check("the theme choice survives a reload",
           page.evaluate("() => document.documentElement.dataset.theme") == theme)
     check("nav/theme: no JS errors", not errors, "; ".join(errors[:3]))
+    ctx.close()
+
+
+def check_mobile_nav(browser):
+    """The section list at a width too narrow to show it inline.
+
+    The header drops .site-nav below 940px, so without the menu a phone has no
+    way to jump between sections at all. The button is also rendered `hidden`
+    and unhidden by site.ts - if that handshake breaks, the control is either
+    missing or dead, and both fail here."""
+    print("\n=== / section menu (narrow) ===")
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    errors = []
+    page = ctx.new_page()
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_function("() => document.documentElement.dataset.animReady === '1'", timeout=15000)
+
+    check("the inline nav is gone at this width", not page.is_visible(".site-nav"))
+    check("the menu button took its place", page.is_visible("#nav-toggle"))
+    check("the menu starts closed", not page.is_visible("#mobile-nav"))
+
+    # The two header controls and the menu button all sit against the right
+    # edge - the whole point of the button being in .site-header__actions.
+    gap = page.evaluate("""() => {
+      const inner = document.querySelector('.site-header__inner');
+      const actions = document.querySelector('.site-header__actions');
+      return Math.round(inner.getBoundingClientRect().right - actions.getBoundingClientRect().right);
+    }""")
+    check("the header controls sit at the right edge", abs(gap) <= 1, f"gap={gap}px")
+
+    page.click("#nav-toggle")
+    page.wait_for_timeout(300)
+    check("the button opens the menu", page.is_visible("#mobile-nav"))
+    check("the menu is marked expanded",
+          page.get_attribute("#nav-toggle", "aria-expanded") == "true")
+    # The menu and the header nav are two renderings of src/lib/sections.ts;
+    # comparing them to each other is what keeps them from drifting apart.
+    listed = page.eval_on_selector_all("#mobile-nav [data-nav-for]", "els => els.map(e => e.dataset.navFor)")
+    inline = page.eval_on_selector_all(".site-nav [data-nav-for]", "els => els.map(e => e.dataset.navFor)")
+    check("the menu lists the same sections as the header nav",
+          listed == inline and len(listed) > 0, str(listed))
+    page.screenshot(path=str(ART / "web_mobile_nav_open.png"))
+
+    page.click('#mobile-nav [data-nav-for="skills"]')
+    page.wait_for_timeout(1200)
+    check("choosing a section closes the menu", not page.is_visible("#mobile-nav"))
+    top = page.evaluate("() => document.getElementById('skills').getBoundingClientRect().top")
+    header_h = page.evaluate("() => document.getElementById('site-header').offsetHeight")
+    check("choosing a section scrolls it below the header",
+          header_h - 2 <= top <= header_h + 40, f"top={round(top)} header={header_h}")
+
+    page.click("#nav-toggle")
+    page.wait_for_timeout(200)
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(200)
+    check("escape closes the menu", not page.is_visible("#mobile-nav"))
+
+    check("section menu: no JS errors", not errors, "; ".join(errors[:3]))
     ctx.close()
 
 
@@ -459,6 +522,7 @@ def main():
 
         chromium = p.chromium.launch()
         check_nav_and_theme(chromium)
+        check_mobile_nav(chromium)
         check_reduced_motion(chromium)
         check_no_js(chromium)
         chromium.close()

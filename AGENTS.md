@@ -39,8 +39,9 @@ src/data/resume.js
 - `src/lib/` - `autolink.ts` (bare URLs → links, used by both renderings), `sections.ts` (which sections exist, in page order), `text.ts`
 - `src/styles/resume.css` - A4 document styles (follows the A4 spec below)
 - `src/styles/site.css` - web resume styles: the design brief, tokens, themes, motion. Loaded ONLY by `/`
-- `src/scripts/site.ts` - theme toggle, scrollspy, reading progress, reveal-on-scroll. Every line of it optional
-- `scripts/prepare-assets.mjs` - fills the generated `public/` with the self-hosted paged.js and font files, and builds `/fonts/fonts.css`; runs before dev and build
+- `src/scripts/site.ts` - theme toggle, scrollspy, reading progress, the narrow-screen section menu, reveal-on-scroll. Every line of it optional
+- `assets/` - the checked-in binaries that are ours rather than a package's: `portrait.webp`, the photograph both renderings show
+- `scripts/prepare-assets.mjs` - fills the generated `public/` with the self-hosted paged.js and font files, copies `assets/portrait.webp` in, and builds `/fonts/fonts.css`; runs before dev and build
 - `scripts/build-pdf.mjs` - generates `_site/cv.pdf` from `/print.html` with headless Chromium (puppeteer)
 - `scripts/pdf-facts.mjs` - reads back what `cv.pdf` contains (text, links) as JSON, for the checks
 - `scripts/check-pdf.mjs` - asserts `cv.pdf` still carries everything `resume.js` says (labels, awards, page numbers, links); the deploy workflow gates on it and `check_view.py` reuses its `--expect` output

@@ -2,8 +2,8 @@
  *
  * Everything here is an enhancement: the page is complete, readable and
  * navigable as server-rendered HTML, and this script only adds the theme
- * toggle, the reading progress bar, the nav's active state and the
- * reveal-on-scroll animation.
+ * toggle, the reading progress bar, the nav's active state, the narrow-screen
+ * section menu and the reveal-on-scroll animation.
  *
  * The one thing that would NOT degrade safely is the animation start state, so
  * it is opt-in from the document itself: the inline script in index.astro sets
@@ -56,6 +56,53 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   }
   if (!stored) html.removeAttribute("data-theme");
 });
+
+/* --------------------------------------------------------- mobile nav */
+
+/* The section list behind a button, for the widths the header cannot fit it.
+   The button ships `hidden`, so this block is also what makes it exist: a
+   visitor with no JS keeps a header of two working links and no dead control.
+
+   The links are plain anchors and stay plain anchors - closing the panel is
+   all that happens here, the jump is the browser's. */
+const navToggle = document.getElementById("nav-toggle");
+const mobileNav = document.getElementById("mobile-nav");
+
+if (navToggle && mobileNav) {
+  navToggle.hidden = false;
+
+  const setNavOpen = (open: boolean) => {
+    navToggle.setAttribute("aria-expanded", String(open));
+    mobileNav.hidden = !open;
+  };
+
+  const navIsOpen = () => navToggle.getAttribute("aria-expanded") === "true";
+
+  navToggle.addEventListener("click", () => setNavOpen(!navIsOpen()));
+
+  mobileNav.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("a")) setNavOpen(false);
+  });
+
+  addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !navIsOpen()) return;
+    setNavOpen(false);
+    navToggle.focus();
+  });
+
+  /* Anywhere else on the page dismisses it, the way any other menu behaves */
+  addEventListener("pointerdown", (e) => {
+    const target = e.target as Node;
+    if (!navIsOpen() || mobileNav.contains(target) || navToggle.contains(target)) return;
+    setNavOpen(false);
+  });
+
+  /* Widen past the breakpoint and the inline nav is back; leaving the panel
+     open would hide it behind a button that CSS has already taken away. */
+  matchMedia("(min-width: 941px)").addEventListener("change", (e) => {
+    if (e.matches) setNavOpen(false);
+  });
+}
 
 /* ----------------------------------------------- progress + nav + header */
 

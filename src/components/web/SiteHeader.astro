@@ -39,8 +39,35 @@ const displayName = titleCase(resume.meta.name);
         <Icon name="file" />
         <span>CV</span>
       </a>
+
+      {/* Narrow screens have no room for the section list, so it moves behind
+          this button. Rendered `hidden`: src/scripts/site.ts unhides it once it
+          has wired up the panel, so a visitor with no JS is never shown a
+          button that cannot open anything. */}
+      <button
+        type="button"
+        class="btn btn--icon nav-toggle"
+        id="nav-toggle"
+        aria-label="Sections"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+        hidden
+      >
+        <Icon name="menu" class="nav-toggle__icon nav-toggle__icon--menu" />
+        <Icon name="close" class="nav-toggle__icon nav-toggle__icon--close" />
+      </button>
     </div>
   </div>
+
+  {/* The same links as .site-nav, in the same order, from the same list - this
+      is a second presentation of the nav, not a second nav. */}
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Sections" hidden>
+    <ul class="mobile-nav__list">
+      {sections.map((s) => (
+        <li><a class="mobile-nav__link" href={`#${s.id}`} data-nav-for={s.id}>{s.nav}</a></li>
+      ))}
+    </ul>
+  </nav>
 
   <div class="progress" id="progress" aria-hidden="true"></div>
 </header>
