@@ -4,7 +4,8 @@
 
    The stuck state, the reading-progress line and the aria-current on the links
    are all set by src/scripts/site.ts; with no JS this is still a working set of
-   anchor links and a link to the PDF, which is the point. */
+   anchor links, the CV button included: it just opens the PDF directly instead
+   of the HTML/PDF menu, which is the point. */
 import resume from "../../data/resume.js";
 import { sections } from "../../lib/sections";
 import { titleCase } from "../../lib/text";
@@ -35,10 +36,38 @@ const displayName = titleCase(resume.meta.name);
         <Icon name="sun" class="theme-toggle__icon theme-toggle__icon--sun" />
       </button>
 
-      <a class="btn btn--quiet" id="open-pdf" href="/cv.pdf" target="_blank" rel="noopener">
-        <Icon name="file" />
-        <span>CV</span>
-      </a>
+      {/* The toggle is a real link to the PDF first, a menu button second:
+          with no JS it behaves exactly like the old single button. site.ts
+          intercepts its click to open the list below instead of navigating,
+          and the list itself needs no `hidden` fallback because .cv-menu__list
+          is closed by CSS only once site.ts marks the menu ready - see the
+          `data-ready` note in site.css. */}
+      <div class="cv-menu">
+        <a
+          class="btn btn--quiet cv-menu__toggle"
+          id="cv-menu-toggle"
+          href="/cv.pdf"
+          target="_blank"
+          rel="noopener"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="cv-menu"
+        >
+          <Icon name="file" />
+          <span>CV</span>
+          <Icon name="chevron" class="cv-menu__chevron" />
+        </a>
+        <div class="cv-menu__list" id="cv-menu" role="menu">
+          <a role="menuitem" href="/print.html" target="_blank" rel="noopener">
+            <Icon name="external" />
+            <span>Open as HTML</span>
+          </a>
+          <a role="menuitem" href="/cv.pdf" target="_blank" rel="noopener">
+            <Icon name="external" />
+            <span>Open as PDF</span>
+          </a>
+        </div>
+      </div>
 
       {/* Narrow screens have no room for the section list, so it moves behind
           this button. Rendered `hidden`: src/scripts/site.ts unhides it once it

@@ -104,6 +104,47 @@ if (navToggle && mobileNav) {
   });
 }
 
+/* -------------------------------------------------------------- CV menu */
+
+/* The header button is a plain link to /cv.pdf, so with no JS it behaves
+   exactly as it always did. Here it grows a second option (the HTML copy)
+   behind a menu; clicking the button itself is intercepted so it opens that
+   menu instead of navigating. */
+const cvToggle = document.getElementById("cv-menu-toggle");
+const cvMenu = document.getElementById("cv-menu");
+
+if (cvToggle && cvMenu) {
+  cvMenu.dataset.ready = "1";
+
+  const cvIsOpen = () => cvToggle.getAttribute("aria-expanded") === "true";
+
+  const setCvOpen = (open: boolean) => {
+    cvToggle.setAttribute("aria-expanded", String(open));
+    cvMenu.classList.toggle("is-open", open);
+  };
+
+  cvToggle.addEventListener("click", (e) => {
+    e.preventDefault();
+    setCvOpen(!cvIsOpen());
+  });
+
+  cvMenu.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("a")) setCvOpen(false);
+  });
+
+  addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !cvIsOpen()) return;
+    setCvOpen(false);
+    cvToggle.focus();
+  });
+
+  addEventListener("pointerdown", (e) => {
+    const target = e.target as Node;
+    if (!cvIsOpen() || cvMenu.contains(target) || cvToggle.contains(target)) return;
+    setCvOpen(false);
+  });
+}
+
 /* ----------------------------------------------- progress + nav + header */
 
 const header = document.getElementById("site-header");

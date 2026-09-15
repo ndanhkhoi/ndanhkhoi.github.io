@@ -416,6 +416,82 @@ html[data-anim="on"] .reveal.is-done {
   }
 }
 
+/* CV menu ----------------------------------------------------------------- */
+
+.cv-menu {
+  position: relative;
+}
+
+.cv-menu__chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.25s var(--ease-soft);
+}
+
+.cv-menu__toggle[aria-expanded="true"] .cv-menu__chevron {
+  transform: rotate(180deg);
+}
+
+/* Before site.ts marks it ready, this is just two more plain links sitting
+   under the button - the no-JS fallback, not a broken dropdown. */
+.cv-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.3rem;
+}
+
+.cv-menu__list a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  transition: color 0.25s var(--ease-soft);
+}
+
+.cv-menu__list a:hover {
+  color: var(--accent);
+}
+
+.cv-menu__list a svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+/* Once site.ts is running, the list becomes an actual dropdown: closed unless
+   the toggle says otherwise, positioned off the button rather than in flow. */
+.cv-menu__list[data-ready] {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  min-width: 170px;
+  margin-top: 0.5rem;
+  padding: 0.3rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.45);
+}
+
+.cv-menu__list[data-ready].is-open {
+  display: flex;
+}
+
+.cv-menu__list[data-ready] a {
+  padding: 0.55rem 0.6rem;
+  border-radius: 4px;
+}
+
+.cv-menu__list[data-ready] a:hover {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
 /* Menu button ----------------------------------------------------------- */
 
 /* Hidden at every width by default, and `hidden` until site.ts claims it - the
