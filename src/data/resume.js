@@ -202,7 +202,7 @@ const resume = {
           "development workflow"
       ]
     },
-    { label: "Language", items: ["English — Able to read technical documentation and communicate in professional contexts", "Vietnamese (native)"] },
+    { label: "Language", items: ["English - Able to read technical documentation and communicate in professional contexts", "Vietnamese (native)"] },
     {
       label: "Leadership & Collaboration",
       items: [
