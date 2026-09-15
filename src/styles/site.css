@@ -903,6 +903,18 @@ html[data-anim="on"] .reveal.is-done {
   text-wrap: pretty;
 }
 
+/* A keyword holds together on one line, so a wrap can never turn
+   "Bootstrap · Tailwind CSS · JavaScript" into what reads as two skills named
+   "Tailwind" and "CSS". Long entries - a whole sentence about AI tooling - are
+   exempt, or they would overhang the column on a narrow screen. */
+.skills dd span {
+  white-space: nowrap;
+}
+
+.skills dd span.is-long {
+  white-space: normal;
+}
+
 /* The separator between keywords - quiet, so the words read first */
 .skills dd i {
   font-style: normal;

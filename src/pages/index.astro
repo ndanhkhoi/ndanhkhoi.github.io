@@ -173,9 +173,16 @@ const personLd = {
             <div>
               <dt class="label">{s.label}</dt>
               {/* One line of keywords per group. The separator is its own
-                  element so it can be quieter than the words it divides. */}
+                  element so it can be quieter than the words it divides, and it
+                  is followed by the ONLY break opportunity on the line: nothing
+                  here is separated by whitespace, so without the <wbr> the sole
+                  place a line could wrap was inside a keyword, and "Tailwind
+                  CSS" came apart into what read as two skills. The span holds
+                  each keyword together; one long enough to need the whole
+                  column is let go again in CSS. */}
               <dd>{s.items.map((item, i) => (
-                <>{i > 0 && <i aria-hidden="true">·</i>}{item}</>
+                <>{i > 0 && <><i aria-hidden="true">·</i><wbr /></>}<span
+                  class={item.length > 28 ? "is-long" : undefined}>{item}</span></>
               ))}</dd>
             </div>
           ))}

@@ -96,7 +96,12 @@ PAGED_METRICS_JS = """
   renderedCounts: {
     awards: document.querySelectorAll('.cert-list li').length,
     skillGroups: document.querySelectorAll('.skill-group').length,
-    entries: document.querySelectorAll('.entry').length,
+    /* An entry is allowed to run over a page boundary, and paged.js renders
+       the remainder as a second .entry carrying data-split-from. Counting raw
+       elements would read that continuation as an extra entry; counting the
+       ones that are NOT continuations still counts each entry exactly once,
+       which is what makes a dropped entry visible. */
+    entries: document.querySelectorAll('.entry:not([data-split-from])').length,
     titles: document.querySelectorAll('.cv-section-title').length,
   },
   /* Content present in the DOM but rendered OUTSIDE its sheet: when a page is

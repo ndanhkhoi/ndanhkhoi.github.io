@@ -6,21 +6,45 @@
  * does NOT use this component: it renders the same data with its own layout,
  * and shows this document as the PDF it links to.
  *
- * Every section follows the same shape: the title and the first block of
- * content sit together inside `.section-start` so paged.js can never leave a
- * heading stranded at the foot of a page (spec A6). Keep that pairing when
- * adding a section.
+ * Every section opens with its title and first block of content inside
+ * `.section-start`. A section whose first block is a GRID adds
+ * `.section-start--atomic`, which pins the pair to one sheet: paged.js cannot
+ * split a grid, it drops the rows that overflow (spec A6 / trap B4.7), so the
+ * title has to travel with it. Sections built from entries must NOT be atomic -
+ * their bullets split cleanly, and holding a whole first entry back left a
+ * quarter of page 1 empty. There `.section-opening` and `.entry-head` keep the
+ * title attached to what follows. Match the right shape when adding a section.
+ *
+ * Section order must stay in step with src/lib/sections.ts and the web page -
+ * one CV should not read in two different orders.
  */
 import resume from "../../data/resume.js";
 import { autolink } from "../../lib/autolink";
+import { titleCase } from "../../lib/text";
 import ContactIcon from "../ContactIcon.astro";
 import CvEntry from "./CvEntry.astro";
+import type { SkillGroup } from "../../data/resume-types";
 
 const { meta, labels } = resume;
 const additional = resume.languages.length > 0 || resume.interests.length > 0;
+
+/* A keyword longer than this needs the whole column and is allowed to wrap;
+   shorter ones are held on one line. Mirrored in src/pages/index.astro. */
+const LONG_ITEM = 28;
+
+/* The skills grid, cut into rows of two - see the note above the section. */
+const skillRows: SkillGroup[][] = [];
+resume.skills.forEach((s, i) => {
+  if (i % 2 === 0) skillRows.push([]);
+  skillRows[skillRows.length - 1].push(s);
+});
 ---
 <div class="page">
 
+  {/* The portrait sits BESIDE the name, not above it, and the block is flush
+      left like everything under it. Stacked and centred it stood 45mm tall -
+      a sixth of the first sheet spent on the part of the CV that says least -
+      and it was the one block on the page fighting the left margin. */}
   <header class="cv-header section--atomic">
     {/* Served from public/portrait.webp, which scripts/prepare-assets.mjs fills
         from assets/. Width and height are set here as well as in the CSS so the
@@ -28,17 +52,22 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
         to the millimetre, and a header that grows after the measurement moves
         every page break below it. */}
     <img class="cv-portrait" src="/portrait.webp" width="512" height="512" alt={meta.name} />
-    <h1 class="cv-name">{meta.name}</h1>
-    <p class="cv-job-title">{meta.jobTitle}</p>
-    {meta.contacts.length > 0 && (
-      <ul class="cv-contact">
-        {meta.contacts.map((c) => (
-          <li><ContactIcon name={c.icon} class="cv-contact__icon" />{c.href
-            ? <a href={c.href} target="_blank" rel="noopener">{c.text}</a>
-            : c.text}</li>
-        ))}
-      </ul>
-    )}
+    <div class="cv-identity">
+      {/* Same face and the same casing as the web resume's hero, so the two
+          renderings read as one person's CV rather than two. Instrument Serif
+          ships a single weight - see .cv-name in resume.css before touching it. */}
+      <h1 class="cv-name">{titleCase(meta.name)}</h1>
+      <p class="cv-job-title">{meta.jobTitle}</p>
+      {meta.contacts.length > 0 && (
+        <ul class="cv-contact">
+          {meta.contacts.map((c) => (
+            <li><ContactIcon name={c.icon} class="cv-contact__icon" />{c.href
+              ? <a href={c.href} target="_blank" rel="noopener">{c.text}</a>
+              : c.text}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   </header>
 
   {resume.summary && (
@@ -108,6 +137,45 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
     </section>
   )}
 
+  {/* One grid per ROW of two groups, not one grid for all fourteen. A grid is
+      indivisible to paged.js - it drops the rows that overflow rather than
+      moving them (trap B4.7) - so a single grid this tall could only ever be
+      thrown whole onto the next sheet, and it took a fifth of page 2 with it.
+      Row-sized grids are each a few millimetres tall, which is the size the
+      spec assumes when it calls a grid safe. The columns still line up: every
+      row resolves the same `repeat(2, minmax(0, 1fr))` against the same width,
+      and .skills-grid's margin-bottom reproduces the row gap it replaces.
+
+      Only the first row travels with the title, so only it is wrapped. */}
+  {skillRows.length > 0 && (
+    <section class="cv-section">
+      {skillRows.map((row, i) => {
+        const grid = (
+          <div class="skills-grid">
+            {row.map((s) => (
+              <div class="skill-group">
+                <p class="skill-group__label">{s.label}</p>
+                {/* A keyword is one span so it cannot be broken across lines -
+                    see .skill-group__items in resume.css. */}
+                <p class="skill-group__items">
+                  {s.items.map((item, n) => (
+                    <>{n > 0 && " · "}<span class={item.length > LONG_ITEM ? "is-long" : undefined}>{item}</span></>
+                  ))}
+                </p>
+              </div>
+            ))}
+          </div>
+        );
+        return i === 0 ? (
+          <div class="section-start section-start--atomic">
+            <h2 class="cv-section-title section-opening">{labels.skills}</h2>
+            {grid}
+          </div>
+        ) : grid;
+      })}
+    </section>
+  )}
+
   {resume.awards.length > 0 && (
     <section class="cv-section">
       <div class="section-start">
@@ -124,25 +192,9 @@ const additional = resume.languages.length > 0 || resume.interests.length > 0;
     </section>
   )}
 
-  {resume.skills.length > 0 && (
-    <section class="cv-section">
-      <div class="section-start">
-        <h2 class="cv-section-title section-opening">{labels.skills}</h2>
-        <div class="skills-grid">
-          {resume.skills.map((s) => (
-            <div class="skill-group">
-              <p class="skill-group__label">{s.label}</p>
-              <p class="skill-group__items">{s.items.join(" · ")}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
   {additional && (
     <section class="cv-section">
-      <div class="section-start">
+      <div class="section-start section-start--atomic">
         <h2 class="cv-section-title section-opening">{labels.additional}</h2>
         <div class="meta-grid">
           {resume.languages.length > 0 && (

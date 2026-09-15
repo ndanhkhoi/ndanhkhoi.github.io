@@ -21,7 +21,7 @@
     --sp-6: 4.5mm;
     --sp-8: 6mm;
     /* Typography */
-    --fs-name: 20pt;
+    --fs-name: 24pt;
     --fs-section: 11pt;
     --fs-entry: 10.5pt;
     --fs-base: 10pt;
@@ -128,11 +128,16 @@ a {
     page-break-after: avoid;
 }
 
-/* Title + first content block of a section travel together: when the block
-   doesn't fit the remaining space, paged.js moves the WHOLE group to the next
-   page, so a section title can never sit orphaned at a page bottom. The group
-   stays small (title + one entry / one grid), safe per A6 note 1. */
-.section-start {
+/* A section title and the grid under it travel together: a grid cannot be
+   split at all - paged.js DROPS the rows that overflow instead of moving them
+   (trap B4.7) - so the title may as well move with it. The group stays small
+   (title + one grid), safe per A6 note 1.
+
+   Sections built from entries do NOT get this: their content splits cleanly
+   between bullets, and forcing the title plus a whole first entry to the next
+   sheet is what left a quarter of page 1 empty. There the title is held to its
+   content by .section-opening (break-after) and .entry-head instead. */
+.section-start--atomic {
     break-inside: avoid-page;
     page-break-inside: avoid;
 }
@@ -150,9 +155,13 @@ a {
 }
 
 /* ===== Header ===== */
+/* Portrait on the left, identity beside it, the whole block flush left with
+   the rest of the document - see the note in CvDocument.astro. */
 .cv-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-8);
     margin-bottom: var(--sp-8);
-    text-align: center;
 }
 
 /* Sized in mm because everything on this page is: at 22mm the photograph reads
@@ -160,19 +169,30 @@ a {
    The hairline keeps a foggy, near-white background from bleeding into the
    paper. */
 .cv-portrait {
+    flex: 0 0 auto;
     display: block;
     width: 22mm;
     height: 22mm;
-    margin: 0 auto var(--sp-4);
     border-radius: 50%;
     border: 0.3mm solid var(--c-rule);
     object-fit: cover;
 }
 
+.cv-identity {
+    min-width: 0;
+}
+
+/* The web resume sets the name in Instrument Serif; this sets it in the same
+   face so the two renderings look related. That face ships ONE weight: asking
+   it for 700 makes the browser synthesise a fake bold and the letters smear,
+   so the presence the old bold carried comes from size here, not weight.
+   Keep font-weight at 400. */
 .cv-name {
+    font-family: "Instrument Serif", "Iowan Old Style", "Palatino Linotype",
+        "Times New Roman", serif;
     font-size: var(--fs-name);
-    font-weight: 700;
-    letter-spacing: 0.5mm;
+    font-weight: 400;
+    letter-spacing: 0;
     line-height: var(--lh-tight);
     color: var(--c-accent);
 }
@@ -190,7 +210,6 @@ a {
     padding: 0;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     align-items: center;
     gap: 0 var(--sp-4);
     font-size: var(--fs-meta);
@@ -239,18 +258,33 @@ a {
     margin-bottom: var(--sp-4);
 }
 
+/* Flush left, not justified: across a 186mm measure with no hyphenation,
+   justification opened rivers through the opening paragraph. The web rendering
+   sets the same sentence flush left. */
 .cv-summary {
-    text-align: justify;
+    text-align: left;
 }
 
 /* ===== Entry (experience / projects / education) ===== */
+/* An entry may split across a page boundary. Held whole it could not fit the
+   space left at the foot of a sheet and jumped to the next one entire, which
+   is what emptied 24% of page 1 and 15% of page 2. What must NOT split is
+   smaller than an entry: the head away from its first bullet, or a bullet down
+   its own middle. Those two are pinned below, and between two whole bullets a
+   break costs the reader nothing. */
 .entry {
     margin-bottom: var(--sp-6);
-    break-inside: avoid-page;
-    page-break-inside: avoid;
+    break-inside: auto;
 }
 
-.entry:last-child {
+/* Only the entry that ends a section drops its margin - the section's own
+   margin-bottom takes over there. This has to be written against the section
+   rather than as a bare .entry:last-child, because the first entry of every
+   section sits alone inside .section-start and so matches :last-child too:
+   that collapsed the gap before the second entry to nothing (measured 0mm
+   where every later entry had 4.5mm). */
+.cv-section > .entry:last-child,
+.cv-section > .section-start:last-child > .entry {
     margin-bottom: 0;
 }
 
@@ -259,6 +293,11 @@ a {
     align-items: flex-start;
     gap: var(--sp-3);
     margin-bottom: var(--sp-2);
+    /* the job title never ends a sheet with its bullets on the next one */
+    break-after: avoid-page;
+    page-break-after: avoid;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
 }
 
 .entry-heading {
@@ -293,6 +332,17 @@ a {
 
 .entry-highlights {
     margin-bottom: 0;
+    orphans: 2;
+    widows: 2;
+}
+
+/* A single bullet stays whole; the list breaks between bullets, never inside
+   one. This is what makes .entry safe to split. */
+.entry-highlights li {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    orphans: 2;
+    widows: 2;
 }
 
 .entry-highlights li,
@@ -309,20 +359,28 @@ a {
 }
 
 .entry-desc {
-    text-align: justify;
+    text-align: left;
 }
 
 /* ===== Skills ===== */
+/* ONE ROW of two groups per grid - CvDocument.astro cuts the list up. A grid
+   is atomic: paged.js cannot split one across pages, it DROPS the rows that
+   overflow instead of moving them (spec A6 / trap B4.7), so a grid is only
+   safe while it is far smaller than a page. Fourteen groups in a single grid
+   was not - it could not fit any partial page and emptied a fifth of the sheet
+   before it. A row can. margin-bottom stands in for the row gap the single
+   grid used to provide; the column gap still belongs to the grid. */
 .skills-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--sp-3) var(--sp-8);
-    /* grids are atomic: paged.js cannot split a grid across pages - when one
-       straddles a page boundary it DROPS the overflowing rows instead of moving
-       them (spec A6 / trap B4.7). Each grid here is far smaller than a page,
-       so forcing it whole to the next page is always safe. */
+    gap: 0 var(--sp-8);
+    margin-bottom: var(--sp-3);
     break-inside: avoid-page;
     page-break-inside: avoid;
+}
+
+.skills-grid:last-child {
+    margin-bottom: 0;
 }
 
 .skill-group {
@@ -343,29 +401,49 @@ a {
     font-size: var(--fs-base);
 }
 
+/* A keyword holds together on one line: only the " · " between two of them is
+   a break opportunity, so a wrap can never split "Tailwind CSS" into what
+   reads as two separate skills. The web resume keeps the same rule. One long
+   enough to need the whole column is let go again, or it would overhang. */
+.skill-group__items span {
+    white-space: nowrap;
+}
+
+.skill-group__items span.is-long {
+    white-space: normal;
+}
+
 /* ===== Certificates & awards ===== */
 /* One award per row: the titles are long sentences, so two columns wrapped them
-   into an unreadable block. Name left, year right (like .entry-head), with an
-   accent rule marking where each award starts. */
+   into an unreadable block. Name left, year right, like .entry-head.
+
+   A plain list, not the one-column grid this used to be: a single column is
+   not doing anything a list does not, and being a grid cost the ability to
+   break between awards - the one place in this section where a break is free.
+   Each award stays whole; the list splits between them.
+
+   No rule down the left either. It was the only border in the document, and
+   nothing else here is marked that way. It was holding the wrapped award
+   together, though, so the gap between items has to stay clearly wider than
+   the leading inside one - hence --sp-4 rather than the --sp-3 it replaced. */
 .cert-list {
     list-style: none;
     padding: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-3);
-    /* atomic like the other grids - see .skills-grid note (trap B4.7) */
-    break-inside: avoid-page;
-    page-break-inside: avoid;
+    margin: 0;
+    break-inside: auto;
 }
 
 .cert-item {
     display: flex;
     align-items: baseline;
     gap: var(--sp-8);
-    padding-left: var(--sp-3);
-    border-left: 0.75pt solid var(--c-rule);
+    margin-bottom: var(--sp-4);
     break-inside: avoid-page;
     page-break-inside: avoid;
+}
+
+.cert-item:last-child {
+    margin-bottom: 0;
 }
 
 .cert-name {
