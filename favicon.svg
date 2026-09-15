@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="K">
+  <!-- The site's mark: the initial of the name, set the way the page is set:
+       one ink tile, one letter, no ornament. Drawn as strokes rather than as
+       type so it does not depend on a font being installed, and squared off at
+       the ends because at 16px a rounded terminal reads as a blur.
+
+       The colours are the ink and paper of src/styles/site.css. They are
+       presentation attributes first, so the mark still draws in a renderer that
+       ignores CSS inside SVG; the rule below only swaps them under a dark UA,
+       so the tile never becomes a black square on a dark tab strip. -->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #ecebe7; }
+      .mark { stroke: #0d0d0f; }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="7" fill="#16181c" />
+  <g class="mark" fill="none" stroke="#fbfaf8" stroke-width="3.4" stroke-linecap="square">
+    <path d="M11 7.5V24.5" />
+    <path d="M12.4 17.2 22.6 7.5" />
+    <path d="M12.4 16.4 23 24.5" />
+  </g>
+</svg>
