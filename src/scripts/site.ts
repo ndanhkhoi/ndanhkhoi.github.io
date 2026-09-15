@@ -134,33 +134,99 @@ function setActive(id: string) {
   }
 }
 
+/* The section the reader picked from the nav, held until they scroll.
+   `pinArrived` marks the jump as finished: until the page actually gets there,
+   the position still reads as wherever the click started from - usually the
+   hero - and the rules below must not mistake that for the reader being back
+   at the top. */
+let pinned = "";
+let pinArrived = false;
+
 function onScroll() {
   const y = window.scrollY;
+  const reach = document.documentElement.scrollHeight - window.innerHeight;
 
   if (header) header.dataset.stuck = String(y > 8);
 
   if (progress) {
-    const reach = document.documentElement.scrollHeight - window.innerHeight;
     progress.style.setProperty("--progress", String(reach > 0 ? Math.min(y / reach, 1) : 0));
   }
 
   if (targets.length) {
-    /* The section under the header line is the one being read. Scanning from
-       the bottom means the last section still counts when the page cannot
-       scroll far enough to put it at the top.
+    /* The section under the reading line is the one being read.
 
-       The line sits below where an anchor jump parks a section (html's
-       scroll-padding-top, header + 12px), so clicking a nav link always lands
-       inside the section it just highlighted. */
-    const line = (header?.offsetHeight ?? 0) + 56;
-    let current = targets[0].link.dataset.navFor as string;
-    for (const { link, section } of targets) {
-      if (section.getBoundingClientRect().top <= line) current = link.dataset.navFor as string;
+       The line normally sits just below where an anchor jump parks a section
+       (html's scroll-padding-top, header + 12px), so clicking a nav link lands
+       inside the section it highlights. But the document ends: the last
+       sections can never be scrolled up to a line near the top of the screen,
+       because there is no page left underneath them to scroll. On this CV the
+       awards heading stops 3px short of it and the whole tail of the nav could
+       never light up at all.
+
+       So as the scroll runs out, the line falls the rest of the way down the
+       screen. With the page fully scrolled it rests at the foot of the
+       viewport, where "the last section that has begun" is the honest answer
+       to what is being read. Above that stretch it does not move. */
+    const baseline = (header?.offsetHeight ?? 0) + 56;
+
+    if (pinned && !pinArrived) {
+      /* Still travelling to the section that was clicked. Landed once it
+         reaches the top of the screen, or once the page runs out of scroll
+         trying - the tail sections never make it all the way up. */
+      const target = targets.find((t) => t.link.dataset.navFor === pinned);
+      if (!target || target.section.getBoundingClientRect().top <= baseline + 2 || y >= reach - 2)
+        pinArrived = true;
     }
-    /* Above the first section (the hero) nothing is current */
-    setActive(targets[0].section.getBoundingClientRect().top > line ? "" : current);
+
+    if (targets[0].section.getBoundingClientRect().top > baseline && (!pinned || pinArrived)) {
+      /* Above the first section - the hero - nothing is being read, whichever
+         link was clicked to get here. That outranks a pin that has landed: a
+         reader who is back at the top has left the section they chose. */
+      pinned = "";
+      setActive("");
+    } else if (!pinned) {
+      /* A nav link the reader just chose outranks anything the geometry says,
+         until they scroll for themselves - see the pin below. */
+      const runway = window.innerHeight - baseline;
+      const left = Math.max(reach - y, 0);
+      const line = left < runway ? baseline + (runway - left) : baseline;
+
+      let current = targets[0].link.dataset.navFor as string;
+      for (const { link, section } of targets) {
+        if (section.getBoundingClientRect().top <= line) current = link.dataset.navFor as string;
+      }
+      setActive(current);
+    }
   }
 }
+
+/* Choosing a section from the nav says which one you mean more plainly than any
+   measurement can, and it is the case the geometry handles worst: every link in
+   the tail of the nav scrolls to the very bottom of the page, landing on the
+   same screen, so without this they would all report the same section. The pin
+   holds the reader's choice until they scroll themselves - wheel, touch and the
+   scrolling keys are user input; the smooth scroll the click starts is not. */
+for (const { link } of targets) {
+  link.addEventListener("click", () => {
+    pinned = link.dataset.navFor as string;
+    pinArrived = false;
+    setActive(pinned);
+  });
+}
+
+const SCROLL_KEYS = new Set([
+  "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ",
+]);
+
+function unpin() {
+  pinned = "";
+}
+
+addEventListener("wheel", unpin, { passive: true });
+addEventListener("touchmove", unpin, { passive: true });
+addEventListener("keydown", (e) => {
+  if (SCROLL_KEYS.has(e.key)) unpin();
+}, { passive: true });
 
 let ticking = false;
 function requestScroll() {

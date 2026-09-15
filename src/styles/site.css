@@ -1005,15 +1005,6 @@ html[data-anim="on"] .reveal.is-done {
   border-bottom-color: var(--rule-strong);
 }
 
-.site-footer__note {
-  margin-top: 2rem;
-  max-width: 52ch;
-  font-size: var(--fs-micro);
-  line-height: 1.6;
-  color: var(--ink-muted);
-  opacity: 0.85;
-}
-
 /* ===== Printing the web page =====
    cv.pdf is the printable artifact and every route to it is one click away. If
    someone prints this page anyway, drop the chrome so the paper carries the

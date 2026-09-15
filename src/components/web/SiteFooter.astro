@@ -1,12 +1,13 @@
 ---
 /* Closing block: the same contact links the CV carries, the two other forms of
-   this document, and a plain statement of how the page is made. /print.html is
+   this document, and the repository they are all built from. /print.html is
    listed on purpose - it is the no-JavaScript, fully selectable copy. */
 import resume from "../../data/resume.js";
 import { titleCase } from "../../lib/text";
 
 const { meta } = resume;
 const links = meta.contacts.filter((c) => c.href);
+const repo = "https://github.com/ndanhkhoi/ndanhkhoi.github.io";
 ---
 <footer class="site-footer">
   <div class="container">
@@ -23,12 +24,8 @@ const links = meta.contacts.filter((c) => c.href);
         ))}
         <a href="/cv.pdf" target="_blank" rel="noopener">CV (PDF)</a>
         <a href="/print.html">HTML version</a>
+        <a href={repo} target="_blank" rel="noopener">Source</a>
       </nav>
     </div>
-
-    <p class="site-footer__note">
-      Built with Astro. The PDF is generated from the same data as this page,
-      paginated with Paged.js and printed by headless Chromium at build time.
-    </p>
   </div>
 </footer>

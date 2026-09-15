@@ -366,8 +366,17 @@ def check_nav_and_theme(browser):
               f"aria-current={current}")
         top = page.evaluate(f"() => document.getElementById('{section}').getBoundingClientRect().top")
         header_h = page.evaluate("() => document.getElementById('site-header').offsetHeight")
+        # Parked under the header, OR the page gave everything it had: the last
+        # sections sit near the end of the document, and there is no page left
+        # underneath them to scroll, so the browser stops at the bottom with the
+        # section still lower down the screen. Either way it must clear the
+        # header and be on screen.
+        at_end = page.evaluate(
+            "() => scrollY >= document.documentElement.scrollHeight - innerHeight - 2")
+        parked = header_h - 2 <= top <= header_h + 40
         check(f"clicking '{section}' scrolls it below the header",
-              header_h - 2 <= top <= header_h + 40, f"top={round(top)} header={header_h}")
+              parked or (at_end and header_h - 2 <= top < page.evaluate("() => innerHeight")),
+              f"top={round(top)} header={header_h} at_end={at_end}")
 
     page.evaluate(SCROLL_TO_JS, 0)
     page.wait_for_timeout(600)
@@ -437,8 +446,12 @@ def check_mobile_nav(browser):
     check("choosing a section closes the menu", not page.is_visible("#mobile-nav"))
     top = page.evaluate("() => document.getElementById('skills').getBoundingClientRect().top")
     header_h = page.evaluate("() => document.getElementById('site-header').offsetHeight")
+    at_end = page.evaluate(
+        "() => scrollY >= document.documentElement.scrollHeight - innerHeight - 2")
     check("choosing a section scrolls it below the header",
-          header_h - 2 <= top <= header_h + 40, f"top={round(top)} header={header_h}")
+          header_h - 2 <= top <= header_h + 40
+          or (at_end and header_h - 2 <= top < page.evaluate("() => innerHeight")),
+          f"top={round(top)} header={header_h} at_end={at_end}")
 
     page.click("#nav-toggle")
     page.wait_for_timeout(200)
